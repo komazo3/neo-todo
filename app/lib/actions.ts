@@ -12,9 +12,17 @@ const TodoFormSchema = z.object({
   id: z.int(),
   title: z.string().min(1).max(50),
   content: z.string().min(1).max(500),
-  status: z.enum(STATUS),
-  priority: z.enum(PRIORITY),
-  deadline: z.iso.datetime(),
+  status: z.coerce
+    .number()
+    .refine((v) => Object.values(STATUS).includes(v as any), {
+      message: "ステータスを選択してください",
+    }),
+  priority: z.coerce
+    .number()
+    .refine((v) => Object.values(PRIORITY).includes(v as any), {
+      message: "優先度を選択してください",
+    }),
+  deadline: z.coerce.date(),
 });
 
 const CreateTodo = TodoFormSchema.omit({ id: true, status: true });
@@ -35,7 +43,6 @@ export async function createTodo(
   prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  console.log(formData);
   // Validate form fields using Zod
   const validatedFields = CreateTodo.safeParse({
     title: formData.get("title"),
@@ -44,8 +51,6 @@ export async function createTodo(
     priority: formData.get("priority"),
     deadline: formData.get("deadline"),
   });
-
-  console.log(validatedFields);
 
   // If form validation fails, return errors early. Otherwise, continue.
   if (!validatedFields.success) {
