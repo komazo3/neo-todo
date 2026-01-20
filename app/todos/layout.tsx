@@ -10,7 +10,7 @@ export default function TodosLayout({
       <body>
         <section>
           <Header></Header>
-          <main>{children}</main>
+          <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
         </section>
       </body>
     </html>

@@ -1,11 +1,13 @@
+import Link from "next/link";
+
 export default function Header() {
   return (
     <div className="px-4 py-5 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8">
       <div className="relative flex items-center justify-between">
         <a
-          href="/"
-          aria-label="Company"
-          title="Company"
+          href="/todos"
+          aria-label="todos"
+          title="todos"
           className="inline-flex items-center"
         >
           <span className="ml-2 text-xl font-bold tracking-wide text-gray-800 uppercase">
@@ -14,54 +16,35 @@ export default function Header() {
         </a>
         <ul className="flex items-center hidden space-x-8 lg:flex">
           <li>
-            <a
-              href="/"
-              aria-label="Our product"
-              title="Our product"
+            <Link
+              href="/todos"
+              aria-label="todo list"
+              title="todo list"
               className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
             >
-              Product
-            </a>
+              TODOの一覧
+            </Link>
           </li>
           <li>
-            <a
-              href="/"
-              aria-label="Our product"
-              title="Our product"
+            <Link
+              href="/todos/new"
+              aria-label="create todo"
+              title="create todo"
               className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
             >
-              Features
-            </a>
+              TODOを作成
+            </Link>
           </li>
+
           <li>
-            <a
-              href="/"
-              aria-label="Product pricing"
-              title="Product pricing"
-              className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
-            >
-              Pricing
-            </a>
-          </li>
-          <li>
-            <a
-              href="/"
-              aria-label="About us"
-              title="About us"
-              className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
-            >
-              About us
-            </a>
-          </li>
-          <li>
-            <a
-              href="/"
-              className="inline-flex items-center justify-center h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-deep-purple-accent-400 hover:bg-deep-purple-accent-700 focus:shadow-outline focus:outline-none"
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-gray-800 hover:bg-gray-500 focus:shadow-outline focus:outline-none"
               aria-label="Sign up"
               title="Sign up"
             >
               Sign up
-            </a>
+            </Link>
           </li>
         </ul>
         {/* <!-- Mobile menu --> */}
