@@ -17,7 +17,13 @@ export async function insertTodo(data: TodoCreateInput) {
 
 export async function updateTodoStatus(id: number, done: boolean) {
   return prisma.todo.update({
-    where: { id: id },
+    where: { id },
     data: { status: done ? Status.DONE : Status.UNTOUCHED },
+  });
+}
+
+export async function deleteTodo(id: number) {
+  return prisma.todo.delete({
+    where: { id },
   });
 }

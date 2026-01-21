@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { insertTodo, updateTodoStatus } from "./database";
+import { deleteTodo, insertTodo, updateTodoStatus } from "./database";
 import "server-only";
 // Create だけのスキーマに絞る（id/status は不要）
 const CreateTodo = z.object({
@@ -62,6 +62,27 @@ export async function createTodoAction(
 }
 
 export async function setTodoStatusAction(id: number, done: boolean) {
-  await updateTodoStatus(id, done);
+  try {
+    await updateTodoStatus(id, done);
+  } catch (e) {
+    console.error(e);
+    return {
+      errors: {},
+      message: "Database Error: Failed to update todo.",
+    };
+  }
+  revalidatePath("/todos");
+}
+
+export async function deleteTodoAction(id: number) {
+  try {
+    await deleteTodo(id);
+  } catch (e) {
+    console.error(e);
+    return {
+      errors: {},
+      message: "Database Error: Failed to delete todo.",
+    };
+  }
   revalidatePath("/todos");
 }
