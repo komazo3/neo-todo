@@ -1,115 +1,67 @@
 "use server";
 
 import { z } from "zod";
-// import postgres from "postgres";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { PRIORITY, STATUS } from "./placeholder-data";
-
-// const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
-
-const TodoFormSchema = z.object({
-  id: z.int(),
-  title: z.string().min(1).max(50),
-  content: z.string().min(1).max(500),
-  status: z.coerce
-    .number()
-    .refine((v) => Object.values(STATUS).includes(v as any), {
-      message: "ステータスを選択してください",
-    }),
-  priority: z.coerce
-    .number()
-    .refine((v) => Object.values(PRIORITY).includes(v as any), {
-      message: "優先度を選択してください",
-    }),
-  deadline: z.coerce.date(),
+import { insertTodo, updateTodoStatus } from "./database";
+import "server-only";
+// Create だけのスキーマに絞る（id/status は不要）
+const CreateTodo = z.object({
+  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+  content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]), // Prisma enum と一致
+  deadline: z
+    .string()
+    .min(1, "期限は必須です")
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "期限の形式が不正です")
+    .transform((v) => new Date(v))
+    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください"),
 });
 
-const CreateTodo = TodoFormSchema.omit({ id: true, status: true });
-const UpdateTodo = TodoFormSchema.omit({ id: true });
+export type TodoInput = z.infer<typeof CreateTodo>;
 
 export type FormState = {
-  errors: {
-    title?: string[];
-    content?: string[];
-    status?: string[];
-    priority?: string[];
-    deadline?: string[];
-  };
+  errors: Partial<Record<keyof TodoInput, string[]>>;
   message: string;
 };
 
-export async function createTodo(
+export async function createTodoAction(
   prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  // Validate form fields using Zod
-  const validatedFields = CreateTodo.safeParse({
+  const validated = CreateTodo.safeParse({
     title: formData.get("title"),
     content: formData.get("content"),
-    status: formData.get("status"),
     priority: formData.get("priority"),
     deadline: formData.get("deadline"),
   });
 
-  // If form validation fails, return errors early. Otherwise, continue.
-  if (!validatedFields.success) {
+  if (!validated.success) {
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing Fields. Failed to Create Todo.",
+      errors: validated.error.flatten().fieldErrors,
+      message: "入力内容を確認してください。",
     };
   }
 
   try {
-  } catch (error) {
-    // If a database error occurs, return a more specific error.
+    await insertTodo({
+      title: validated.data.title,
+      content: validated.data.content,
+      priority: validated.data.priority,
+      deadline: validated.data.deadline,
+    });
+  } catch {
     return {
       errors: {},
       message: "Database Error: Failed to Create Todo.",
     };
   }
 
-  // Revalidate the cache for the invoices page and redirect the user.
   revalidatePath("/todos");
   redirect("/todos");
 }
 
-// export async function updateInvoice(
-//   id: string,
-//   prevState: State,
-//   formData: FormData,
-// ) {
-//   const validatedFields = UpdateInvoice.safeParse({
-//     customerId: formData.get("customerId"),
-//     amount: formData.get("amount"),
-//     status: formData.get("status"),
-//   });
-
-//   if (!validatedFields.success) {
-//     return {
-//       errors: validatedFields.error.flatten().fieldErrors,
-//       message: "Missing Fields. Failed to Update Invoice.",
-//     };
-//   }
-
-//   const { customerId, amount, status } = validatedFields.data;
-//   const amountInCents = amount * 100;
-
-//   try {
-//     await sql`
-//       UPDATE invoices
-//       SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-//       WHERE id = ${id}
-//     `;
-//   } catch (error) {
-//     return { message: "Database Error: Failed to Update Invoice." };
-//   }
-
-//   revalidatePath("/dashboard/invoices");
-//   redirect("/dashboard/invoices");
-// }
-
-// export async function deleteInvoice(id: string) {
-//   await sql`DELETE FROM invoices WHERE id = ${id}`;
-//   revalidatePath("/dashboard/invoices");
-// }
+export async function setTodoStatusAction(id: number, done: boolean) {
+  await updateTodoStatus(id, done);
+  revalidatePath("/todos");
+}

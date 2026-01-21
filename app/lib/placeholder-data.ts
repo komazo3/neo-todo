@@ -1,12 +1,12 @@
 export const PRIORITY = {
-  LOW: 0,
-  MEDIUM: 1,
-  HIGH: 2,
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
 } as const;
 
 export const STATUS = {
-  UNTOUCHED: 0,
-  DONE: 1,
+  UNTOUCHED: "UNTOUCHED",
+  DONE: "DONE",
 } as const;
 
 export type Priority = (typeof PRIORITY)[keyof typeof PRIORITY];

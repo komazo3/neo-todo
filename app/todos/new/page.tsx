@@ -1,14 +1,15 @@
 "use client";
 
 import SubHeader from "@/app/components/todos/subHeader";
-import { createTodo, FormState } from "@/app/lib/actions";
+import { createTodoAction, FormState } from "@/app/lib/actions";
 import { PRIORITY } from "@/app/lib/placeholder-data";
 import Link from "next/link";
 import { useActionState } from "react";
 
 export default function New() {
   const initialState: FormState = { message: "", errors: {} };
-  const [state, formAction] = useActionState(createTodo, initialState);
+  const [state, formAction] = useActionState(createTodoAction, initialState);
+
   return (
     <>
       <SubHeader title={"TODOを新規登録"}></SubHeader>

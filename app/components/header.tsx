@@ -20,30 +20,9 @@ export default function Header() {
               href="/todos"
               aria-label="todo list"
               title="todo list"
-              className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
-            >
-              TODOの一覧
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/todos/new"
-              aria-label="create todo"
-              title="create todo"
-              className="font-medium tracking-wide text-gray-700 transition-colors duration-200 hover:text-deep-purple-accent-400"
-            >
-              TODOを作成
-            </Link>
-          </li>
-
-          <li>
-            <Link
-              href="/login"
               className="inline-flex items-center justify-center h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-gray-800 hover:bg-gray-500 focus:shadow-outline focus:outline-none"
-              aria-label="Sign up"
-              title="Sign up"
             >
-              Sign up
+              Log out
             </Link>
           </li>
         </ul>
