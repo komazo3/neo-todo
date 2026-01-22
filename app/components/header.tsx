@@ -1,10 +1,12 @@
+import { signOut } from "@/auth";
+import { Button } from "@mui/material";
 import Link from "next/link";
 
 export default function Header() {
   return (
     <div className="px-4 py-5 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8">
       <div className="relative flex items-center justify-between">
-        <a
+        <Link
           href="/todos"
           aria-label="todos"
           title="todos"
@@ -13,17 +15,24 @@ export default function Header() {
           <span className="ml-2 text-xl font-bold tracking-wide text-gray-800 uppercase">
             TODO Today
           </span>
-        </a>
+        </Link>
         <ul className="flex items-center hidden space-x-8 lg:flex">
           <li>
-            <Link
-              href="/todos"
-              aria-label="todo list"
-              title="todo list"
-              className="inline-flex items-center justify-center h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-gray-800 hover:bg-gray-500 focus:shadow-outline focus:outline-none"
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/login" });
+              }}
             >
-              Log out
-            </Link>
+              <Button
+                aria-label="todo list"
+                title="todo list"
+                className="inline-flex items-center justify-center h-12 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-gray-800 hover:bg-gray-500 focus:shadow-outline focus:outline-none"
+                type="submit"
+              >
+                Log out
+              </Button>
+            </form>
           </li>
         </ul>
         {/* <!-- Mobile menu --> */}
@@ -48,7 +57,7 @@ export default function Header() {
               ></path>
             </svg>
           </button>
-          {/* <!-- Mobile menu dropdown 
+          {/* <!-- Mobile menu dropdown
       <div className="absolute top-0 left-0 w-full">
         <div className="p-5 bg-white border rounded shadow-sm">
           <div className="flex items-center justify-between mb-4">

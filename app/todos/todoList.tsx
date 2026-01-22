@@ -40,7 +40,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   );
   function toggleTodoDone(todoId: number, checked: boolean) {
     // 先にUIを更新（体感が良い）
-    setOptimisticTodos({ id: todoId, done: checked });
+    // setOptimisticTodos({ id: todoId, done: checked });
 
     // サーバー更新は裏で実行
     startTransition(async () => {
