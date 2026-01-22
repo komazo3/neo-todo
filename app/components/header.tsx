@@ -11,7 +11,7 @@ export default function Header() {
           className="inline-flex items-center"
         >
           <span className="ml-2 text-xl font-bold tracking-wide text-gray-800 uppercase">
-            Neo TODO
+            TODO Today
           </span>
         </a>
         <ul className="flex items-center hidden space-x-8 lg:flex">

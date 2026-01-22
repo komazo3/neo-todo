@@ -28,7 +28,7 @@ export default async function Page({ searchParams }: Props) {
     content: t.content,
     status: t.status, // Prisma enum は string なのでOK
     priority: t.priority, // 同上
-    deadline: t.deadline.toISOString(), // stringへ
+    deadline: t.deadline, // stringへ
   }));
 
   return (

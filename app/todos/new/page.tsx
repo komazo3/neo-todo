@@ -2,9 +2,19 @@
 
 import SubHeader from "@/app/components/todos/subHeader";
 import { createTodoAction, FormState } from "@/app/lib/actions";
-import { PRIORITY } from "@/app/lib/placeholder-data";
+import { Priority } from "@/generated/prisma/enums";
+import { MenuItem, TextField } from "@mui/material";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { ja } from "date-fns/locale";
 import Link from "next/link";
 import { useActionState } from "react";
+
+const priorities = [
+  { label: "低", value: Priority.LOW },
+  { label: "中", value: Priority.MEDIUM },
+  { label: "高", value: Priority.HIGH },
+];
 
 export default function New() {
   const initialState: FormState = { message: "", errors: {} };
@@ -12,96 +22,83 @@ export default function New() {
 
   return (
     <>
-      <SubHeader title={"TODOを新規登録"}></SubHeader>
+      <SubHeader title={"TODOを追加"}></SubHeader>
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <form className="p-5 sm:p-6" action={formAction}>
           <div>
-            <label
-              htmlFor="title"
-              className="flex items-center justify-between text-sm font-medium"
-            >
-              <span>
-                タイトル
-                <span className="ml-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  必須
-                </span>
-              </span>
-              <span className="text-xs text-slate-500">最大50文字</span>
-            </label>
-            <input
+            <TextField
               id="title"
               name="title"
-              type="text"
+              margin="normal"
+              label="タイトル"
+              variant="outlined"
               required
-              placeholder="例）Next.js TODO一覧のUIを整える"
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+              fullWidth
+              slotProps={{ htmlInput: { maxLength: 50 } }}
             />
           </div>
+          <div id="customer-error" aria-live="polite" aria-atomic="true">
+            {state.errors?.title &&
+              state.errors.title.map((error: string) => (
+                <p className="mt-2 text-sm text-red-500" key={error}>
+                  {error}
+                </p>
+              ))}
+          </div>
 
-          <div className="mt-5">
-            <label
-              htmlFor="content"
-              className="flex items-center justify-between text-sm font-medium"
-            >
-              <span>
-                内容
-                <span className="ml-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  必須
-                </span>
-              </span>
-              <span className="text-xs text-slate-500">最大500文字</span>
-            </label>
-            <textarea
+          <div>
+            <TextField
               id="content"
               name="content"
+              multiline
+              margin="normal"
+              rows={5}
+              label="内容"
+              variant="outlined"
               required
-              rows={6}
-              placeholder="やること・完了条件・メモなどを記載"
-              className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
-            ></textarea>
+              fullWidth
+              slotProps={{ htmlInput: { maxLength: 500 } }}
+            />
+          </div>
+          <div id="customer-error" aria-live="polite" aria-atomic="true">
+            {state.errors?.content &&
+              state.errors.content.map((error: string) => (
+                <p className="mt-2 text-sm text-red-500" key={error}>
+                  {error}
+                </p>
+              ))}
           </div>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="priority" className="text-sm font-medium">
-                優先度
-                <span className="ml-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  必須
-                </span>
-              </label>
-              <select
-                id="priority"
+              <TextField
+                id="outlined-select-currency"
                 name="priority"
+                select
+                label="優先度"
                 required
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+                fullWidth
                 defaultValue={""}
               >
-                <option value="" disabled>
-                  選択してください
-                </option>
-                <option value={PRIORITY.LOW}>低</option>
-                <option value={PRIORITY.MEDIUM}>中</option>
-                <option value={PRIORITY.HIGH}>高</option>
-              </select>
+                {priorities.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
             </div>
 
             <div>
-              <label htmlFor="deadline" className="text-sm font-medium">
-                期限
-                <span className="ml-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                  必須
-                </span>
-              </label>
-              <input
-                id="deadline"
-                name="deadline"
-                type="datetime-local"
-                required
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                例）2026/01/20 18:00
-              </p>
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                adapterLocale={ja}
+              >
+                <DateTimePicker
+                  name="deadline"
+                  label="期限"
+                  sx={{ width: "100%" }}
+                />
+              </LocalizationProvider>
             </div>
           </div>
 
@@ -117,7 +114,7 @@ export default function New() {
               type="submit"
               className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
             >
-              登録
+              追加
             </button>
           </div>
         </form>

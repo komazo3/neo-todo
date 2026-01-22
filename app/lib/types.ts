@@ -4,5 +4,5 @@ export type TodoDTO = {
   content: string;
   status: "UNTOUCHED" | "DONE";
   priority: "LOW" | "MEDIUM" | "HIGH";
-  deadline: string; // Clientに渡すなら文字列が安全
+  deadline: Date; // Clientに渡すなら文字列が安全
 };

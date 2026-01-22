@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PRIORITY, STATUS } from "../lib/placeholder-data";
 import { formatDateTime, formatTime } from "../lib/util";
 import { useOptimistic, useState, useTransition } from "react";
-import { deleteTodoAction, setTodoStatusAction } from "../lib/actions";
+import { deleteTodoAction, updateTodoStatusAction } from "../lib/actions";
 import { TodoDTO } from "../lib/types";
 import PriorityChip from "../components/todos/priorityChip";
 import {
@@ -44,7 +44,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
 
     // サーバー更新は裏で実行
     startTransition(async () => {
-      await setTodoStatusAction(todoId, checked);
+      await updateTodoStatusAction(todoId, checked);
       // revalidatePath("/todos") されるので、一覧は最終的に正になる
     });
   }
