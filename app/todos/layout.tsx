@@ -1,18 +1,18 @@
+import { auth } from "@/auth";
 import Header from "../components/header";
+import { redirect } from "next/navigation";
 
-export default function TodosLayout({
+export default async function TodosLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  if (!session) redirect("/login");
   return (
-    <html lang="ja">
-      <body>
-        <section>
-          <Header></Header>
-          <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
-        </section>
-      </body>
-    </html>
+    <section>
+      <Header></Header>
+      <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
+    </section>
   );
 }
