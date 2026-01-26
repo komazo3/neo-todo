@@ -2,16 +2,19 @@ import { Status, Todo } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
 import { TodoCreateInput, TodoUpdateInput } from "@/generated/prisma/models";
 import "server-only";
-export async function listTodos(status?: Status): Promise<Todo[]> {
+export async function listTodos(
+  userId: string,
+  status?: Status,
+): Promise<Todo[]> {
   return prisma.todo.findMany({
-    where: status ? { status } : undefined,
+    where: { status: status ? status : undefined, userId: userId },
     orderBy: { deadline: "asc" },
   });
 }
 
-export async function getTodo(id: number) {
+export async function getTodo(todoId: number, userId: string) {
   return prisma.todo.findUnique({
-    where: { id },
+    where: { id: todoId, userId: userId },
   });
 }
 

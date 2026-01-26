@@ -11,35 +11,38 @@ import {
   updateTodoStatus,
 } from "./database";
 import "server-only";
+import { auth } from "@/auth";
 // Create だけのスキーマに絞る（id/status は不要）
 const CreateTodo = z.object({
   title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
   content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"]), // Prisma enum と一致
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+    message: "優先度を選択してください",
+  }),
   deadline: z
     .string()
     .min(1, "期限は必須です")
     .transform((v) => new Date(v))
-    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください"),
+    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください")
+    .refine((d) => d >= new Date(), "現在以降の日時を入力してください"),
 });
 
-export type TodoInput = z.infer<typeof CreateTodo>;
+export type CreateTodoInput = z.infer<typeof CreateTodo>;
 
 // 編集画面用
 const UpdateTodo = z.object({
   id: z.coerce.number().int().positive("IDが不正です"),
-
   title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
-
   content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
-
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
-
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+    message: "優先度を選択してください",
+  }),
   deadline: z
     .string()
     .min(1, "期限は必須です")
     .transform((v) => new Date(v))
-    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください"),
+    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください")
+    .refine((d) => d >= new Date(), "現在以降の日時を入力してください"),
 });
 export type UpdateTodoInput = z.infer<typeof UpdateTodo>;
 
@@ -49,15 +52,25 @@ const UpdateTodoStatus = z.object({
 });
 export type UpdateTodoStatusInput = z.infer<typeof UpdateTodoStatus>;
 
-export type FormState = {
-  errors: Partial<Record<keyof TodoInput, string[]>>;
+export type CreateFormState = {
+  errors: Partial<Record<keyof CreateTodoInput, string[]>>;
+  message: string;
+};
+export type UpdateFormState = {
+  errors: Partial<Record<keyof UpdateTodoInput, string[]>>;
   message: string;
 };
 
 export async function createTodoAction(
-  prevState: FormState,
+  prevState: CreateFormState,
   formData: FormData,
-): Promise<FormState> {
+): Promise<CreateFormState> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。" };
+    // もしくは redirect("/login")
+  }
+
   const validated = CreateTodo.safeParse({
     title: formData.get("title"),
     content: formData.get("content"),
@@ -81,6 +94,7 @@ export async function createTodoAction(
       content: validated.data.content,
       priority: validated.data.priority,
       deadline: validated.data.deadline,
+      user: { connect: { id: session.user.id } },
     });
   } catch {
     return {
@@ -93,21 +107,9 @@ export async function createTodoAction(
   redirect("/todos");
 }
 
-export async function getTodoAction(id: number) {
-  try {
-    await getTodo(id);
-  } catch (e) {
-    console.error(e);
-    return {
-      errors: {},
-      message: "Database Error: Failed to update todo.",
-    };
-  }
-}
-
 export async function updateTodoAction(
   id: number,
-  formState: FormState,
+  formState: UpdateFormState,
   formData: FormData,
 ) {
   const validated = UpdateTodo.safeParse({

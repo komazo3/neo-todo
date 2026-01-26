@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { PRIORITY, STATUS } from "../lib/placeholder-data";
-import { formatDateTime, formatTime } from "../lib/util";
+import { formatDateTime } from "../lib/util";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteTodoAction, updateTodoStatusAction } from "../lib/actions";
 import { TodoDTO } from "../lib/types";
-import PriorityChip from "../components/todos/priorityChip";
+import PriorityChip from "./priorityChip";
 import {
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle,
 } from "@mui/material";
+import { Status } from "@/generated/prisma/enums";
 
 export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   const [openedTodoId, setOpenedTodoId] = useState<number | null>(null);
@@ -29,15 +28,6 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
 
   const [isPending, startTransition] = useTransition();
 
-  const [optimisticTodos, setOptimisticTodos] = useOptimistic(
-    todos,
-    (state: TodoDTO[], payload: { id: number; done: boolean }) =>
-      state.map((t) =>
-        t.id === payload.id
-          ? { ...t, status: payload.done ? STATUS.DONE : STATUS.UNTOUCHED }
-          : t,
-      ),
-  );
   function toggleTodoDone(todoId: number, checked: boolean) {
     // 先にUIを更新（体感が良い）
     // setOptimisticTodos({ id: todoId, done: checked });
@@ -67,7 +57,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                 type="checkbox"
                 aria-label="完了切り替え"
                 className="mt-1 h-5 w-5 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
-                checked={todo.status === STATUS.DONE}
+                checked={todo.status === Status.DONE}
                 onChange={(e) => toggleTodoDone(todo.id, e.target.checked)}
               />
 
@@ -82,7 +72,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                   </span>
                 </div>
 
-                <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                <p className="whitespace-pre-line mt-1 line-clamp-2 text-sm text-slate-600">
                   {todo.content}
                 </p>
               </div>

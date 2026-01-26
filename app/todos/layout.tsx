@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import Header from "../components/header";
 import { redirect } from "next/navigation";
 
 export default async function TodosLayout({
@@ -11,7 +10,6 @@ export default async function TodosLayout({
   if (!session) redirect("/login");
   return (
     <section>
-      <Header></Header>
       <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
     </section>
   );

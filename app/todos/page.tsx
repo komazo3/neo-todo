@@ -1,12 +1,13 @@
 import Link from "next/link";
-import SubHeader from "../components/todos/subHeader";
+import SubHeader from "../components/subHeader";
 import TodoList from "./todoList";
 import StatusFilter from "./statusFIlter";
-import Button from "./button";
 import { listTodos } from "../lib/database";
 import { Status } from "@/generated/prisma/enums";
 import { Todo } from "@/generated/prisma/client";
 import { TodoDTO } from "../lib/types";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 type Props = {
@@ -21,7 +22,9 @@ export default async function Page({ searchParams }: Props) {
       : sp?.status === "UNTOUCHED"
         ? Status.UNTOUCHED
         : undefined;
-  const todos: Todo[] = await listTodos(status);
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const todos: Todo[] = await listTodos(session.user.id, status);
   const dto: TodoDTO[] = todos.map((t) => ({
     id: t.id,
     title: t.title,

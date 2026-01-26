@@ -6,7 +6,9 @@ export default function VerifyRequestPage() {
           メールを送信しました
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          受信箱を確認して、届いたリンクを開いてください。数分待っても届かない場合は迷惑メールも確認してください。
+          受信箱を確認して、届いたリンクを開いてください。
+          <br />
+          迷惑メールも確認してください。
         </p>
 
         <div className="mt-6 flex gap-2">
