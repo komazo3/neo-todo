@@ -50,9 +50,13 @@ export default async function Page({ searchParams }: Props) {
       </section>
 
       {/* <!-- List --> */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <TodoList todos={dto}></TodoList>
-      </section>
+      {todos.length === 0 ? (
+        <p>TODOを追加しましょう!</p>
+      ) : (
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <TodoList todos={dto}></TodoList>
+        </section>
+      )}
     </>
   );
 }

@@ -1,6 +1,10 @@
 import { Status, Todo } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
-import { TodoCreateInput, TodoUpdateInput } from "@/generated/prisma/models";
+import {
+  TodoCreateInput,
+  TodoUpdateInput,
+  UserUpdateInput,
+} from "@/generated/prisma/models";
 import "server-only";
 export async function listTodos(
   userId: string,
@@ -41,5 +45,18 @@ export async function updateTodoStatus(id: number, done: boolean) {
 export async function deleteTodo(id: number) {
   return prisma.todo.delete({
     where: { id },
+  });
+}
+
+export async function getUser(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+  });
+}
+
+export async function updateUser(userId: string, data: UserUpdateInput) {
+  return prisma.user.update({
+    where: { id: userId },
+    data,
   });
 }

@@ -1,7 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { Button } from "@mui/material";
 import Link from "next/link";
-import UserAvatar from "./userInfo";
 import UserInfo from "./userInfo";
 
 export default async function Header() {

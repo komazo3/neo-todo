@@ -32,7 +32,7 @@ export default function Form({ todo }: { todo: TodoDTO }) {
 
   const initialState: UpdateFormState = { message: "", errors: {} };
   const [serverState, formAction] = useActionState(
-    updateTodoAction.bind(null, todo.id),
+    updateTodoAction,
     initialState,
   );
 
@@ -78,6 +78,7 @@ export default function Form({ todo }: { todo: TodoDTO }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <form className="p-5 sm:p-6" onSubmit={onSubmit}>
+        <input type="hidden" name="id" value={todo.id} />
         <div>
           <TextField
             id="title"

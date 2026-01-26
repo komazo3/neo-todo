@@ -6,3 +6,8 @@ export type TodoDTO = {
   priority: "LOW" | "MEDIUM" | "HIGH";
   deadline: Date;
 };
+
+export type UserDTO = {
+  id: string;
+  name: string;
+};

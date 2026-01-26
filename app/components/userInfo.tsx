@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import Link from "next/link";
 
 function getInitial(name?: string | null) {
   const n = (name ?? "").trim();
@@ -16,30 +17,32 @@ export default async function UserInfo() {
   const image = session.user.image;
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1">
-      {/* Avatar */}
-      <div className="relative h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-white">
-        {image ? (
-          // next/image を使ってもOK（ポートフォリオなら推奨）
-          <img
-            src={image}
-            alt={`${name} avatar`}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-sm font-semibold text-slate-700">
-            {getInitial(name)}
-          </div>
-        )}
-      </div>
+    <Link href="/mypage" className="rounded-xl border-gray-400">
+      <div className="flex items-center gap-2  px-2 py-1">
+        {/* Avatar */}
+        <div className="relative h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-white">
+          {image ? (
+            // next/image を使ってもOK（ポートフォリオなら推奨）
+            <img
+              src={image}
+              alt={`${name} avatar`}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-sm font-semibold text-slate-700">
+              {getInitial(name)}
+            </div>
+          )}
+        </div>
 
-      {/* Name */}
-      <div className="hidden sm:block">
-        <p className="max-w-[160px] truncate text-sm font-semibold text-slate-900">
-          {name + " 様"}
-        </p>
+        {/* Name */}
+        <div className="hidden sm:block">
+          <p className="max-w-[160px] truncate text-sm font-semibold text-slate-900">
+            {name + " 様"}
+          </p>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

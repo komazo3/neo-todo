@@ -9,6 +9,7 @@ import {
   insertTodo,
   updateTodo,
   updateTodoStatus,
+  updateUser,
 } from "./database";
 import "server-only";
 import { auth } from "@/auth";
@@ -51,6 +52,12 @@ const UpdateTodoStatus = z.object({
   done: z.boolean(),
 });
 export type UpdateTodoStatusInput = z.infer<typeof UpdateTodoStatus>;
+
+const UpdateUser = z.object({
+  id: z.string(),
+  name: z.string().min(1, "名前は必須です").max(50, "最大50文字です"),
+});
+export type UserUpdateInput = z.infer<typeof UpdateUser>;
 
 export type CreateFormState = {
   errors: Partial<Record<keyof CreateTodoInput, string[]>>;
@@ -108,12 +115,11 @@ export async function createTodoAction(
 }
 
 export async function updateTodoAction(
-  id: number,
   formState: UpdateFormState,
   formData: FormData,
 ) {
   const validated = UpdateTodo.safeParse({
-    id: id,
+    id: formData.get("id"),
     title: formData.get("title"),
     content: formData.get("content"),
     priority: formData.get("priority"),
@@ -128,7 +134,7 @@ export async function updateTodoAction(
   }
 
   try {
-    await updateTodo(id, {
+    await updateTodo(validated.data.id, {
       title: validated.data.title,
       content: validated.data.content,
       priority: validated.data.priority,
@@ -185,4 +191,34 @@ export async function deleteTodoAction(id: number) {
     };
   }
   revalidatePath("/todos");
+}
+
+export async function updateUserAction(
+  formState: UpdateFormState | undefined,
+  formData: FormData,
+) {
+  const validated = UpdateUser.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+  });
+
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors,
+      message: "入力内容を確認してください。",
+    };
+  }
+
+  try {
+    await updateUser(validated.data.id, {
+      name: validated.data.name,
+    });
+  } catch {
+    return {
+      errors: {},
+      message: "Database Error: Failed to Update User.",
+    };
+  }
+
+  revalidatePath("/mypage");
 }

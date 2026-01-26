@@ -46,6 +46,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
       // revalidatePath("/todos") されるので、一覧は最終的に正になる
     });
   }
+
   return (
     <>
       <ul className="divide-y divide-slate-200">
