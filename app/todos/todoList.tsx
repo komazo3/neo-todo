@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDateTime } from "../lib/util";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { deleteTodoAction, updateTodoStatusAction } from "../lib/actions";
 import { TodoDTO } from "../lib/types";
 import PriorityChip from "./priorityChip";
@@ -21,6 +21,13 @@ import { useToast } from "../components/toastProvider";
 
 export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   const [openedTodoId, setOpenedTodoId] = useState<number | null>(null);
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic(
+    todos,
+    (state, update: { id: number; status: "DONE" | "UNTOUCHED" }) =>
+      state.map((t) =>
+        t.id === update.id ? { ...t, status: update.status } : t,
+      ),
+  );
 
   const toast = useToast();
 
@@ -29,11 +36,21 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   const handleCloseDialog = () => setOpenedTodoId(null);
 
   function toggleTodoDone(todoId: number, checked: boolean) {
+    const nextStatus = checked ? Status.DONE : Status.UNTOUCHED;
+
     startTransition(async () => {
+      // ✅ optimistic 更新は transition 内へ
+      setOptimisticTodos({ id: todoId, status: nextStatus });
+
       try {
         await updateTodoStatusAction(todoId, checked);
         toast.success("更新しました。");
       } catch {
+        // ✅ 失敗時のロールバックも transition 内
+        setOptimisticTodos({
+          id: todoId,
+          status: checked ? Status.UNTOUCHED : Status.DONE,
+        });
         toast.error("更新が失敗しました。");
       }
     });
@@ -54,7 +71,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   return (
     <>
       <ul className="divide-y divide-slate-200">
-        {todos.map((todo) => (
+        {optimisticTodos.map((todo) => (
           <li key={todo.id} className="px-4 py-4 sm:px-6">
             <div className="flex items-start gap-3">
               <Checkbox
