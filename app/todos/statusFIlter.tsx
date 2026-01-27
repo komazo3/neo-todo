@@ -1,25 +1,17 @@
 "use client";
 
-import { ListItem, MenuItem, TextField } from "@mui/material";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { MenuItem, TextField } from "@mui/material";
 import { DISPLAYSTATUS } from "../lib/constants";
 
-export default function StatusFilter({ current }: { current: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "ALL") {
-      params.delete("status");
-    } else {
-      params.set("status", value);
-    }
-
-    router.push(`${pathname}?${params.toString()}`);
+export default function StatusFilter({
+  current,
+  onChange,
+}: {
+  current: string;
+  onChange: (value: string) => void;
+}) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onChange(e.target.value);
   }
 
   return (
@@ -30,7 +22,7 @@ export default function StatusFilter({ current }: { current: string }) {
         value={current}
         select
         fullWidth
-        onChange={onChange}
+        onChange={handleChange}
       >
         <MenuItem value={DISPLAYSTATUS.ALL}>すべて</MenuItem>
         <MenuItem value={DISPLAYSTATUS.UNTOUCHED}>未完了</MenuItem>

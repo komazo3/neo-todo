@@ -1,21 +1,17 @@
 "use client";
 
-import { ListItem, MenuItem, TextField } from "@mui/material";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DISPLAYSTATUS, SORTITEMS } from "../lib/constants";
+import { MenuItem, TextField } from "@mui/material";
+import { SORTITEMS } from "../lib/constants";
 
-export default function SortSelect({ current }: { current: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("sort", value);
-
-    router.push(`${pathname}?${params.toString()}`);
+export default function SortSelect({
+  current,
+  onChange,
+}: {
+  current: string;
+  onChange: (value: string) => void;
+}) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onChange(e.target.value);
   }
 
   return (
@@ -26,7 +22,7 @@ export default function SortSelect({ current }: { current: string }) {
         value={current}
         select
         fullWidth
-        onChange={onChange}
+        onChange={handleChange}
       >
         <MenuItem value={SORTITEMS.PRIORITY_ASC}>優先度が低い順</MenuItem>
         <MenuItem value={SORTITEMS.PRIORITY_DESC}>優先度が高い順</MenuItem>
