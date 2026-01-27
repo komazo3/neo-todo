@@ -11,6 +11,8 @@ import { redirect } from "next/navigation";
 import SortSelect from "./sortSelect";
 import { SORTITEMS } from "../lib/constants";
 import DateSelector from "./dateSelector";
+import { Button } from "@mui/material";
+import AddButton from "./addButton";
 
 export const dynamic = "force-dynamic";
 type Props = {
@@ -72,12 +74,7 @@ export default async function Page({ searchParams }: Props) {
       <section className="mb-4 grid gap-3 sm:grid-cols-3">
         <StatusFilter current={status ?? "ALL"}></StatusFilter>
         <SortSelect current={sort ?? SORTITEMS.DEADLINE_ASC}></SortSelect>
-        <Link
-          href="/todos/new"
-          className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
-        >
-          ＋ TODOを追加
-        </Link>
+        <AddButton></AddButton>
       </section>
 
       {/* <!-- List --> */}

@@ -12,7 +12,7 @@ import {
   updateUser,
 } from "./database";
 import "server-only";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 // Create だけのスキーマに絞る（id/status は不要）
 const CreateTodo = z.object({
   title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
@@ -221,4 +221,8 @@ export async function updateUserAction(
   }
 
   revalidatePath("/mypage");
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
 }

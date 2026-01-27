@@ -1,31 +1,30 @@
-import { auth } from "@/auth";
+"use client";
+
 import Link from "next/link";
 import { getInitial } from "../lib/util";
-import Image from "next/image";
+import { Button } from "@mui/material";
+import { UserLite } from "../lib/types";
 
-export default async function UserInfo() {
-  const session = await auth();
-
-  if (!session?.user) return null;
-
-  const name = session.user.name ?? "User";
-  const image = session.user.image;
-
+export default function UserInfo({ user }: { user: UserLite }) {
   return (
-    <Link href="/mypage" className="rounded-xl border-gray-400">
+    <Button
+      component={Link}
+      href="/mypage"
+      className="rounded-xl border-gray-400"
+    >
       <div className="flex items-center gap-2  px-2 py-1">
         {/* Avatar */}
         <div className="relative h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-white">
-          {image ? (
+          {user.image ? (
             <img
-              src={image}
-              alt={`${name} avatar`}
+              src={user.image}
+              alt={`${user.name} avatar`}
               className="h-full w-full object-cover"
               referrerPolicy="no-referrer"
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-sm font-semibold text-slate-700">
-              {getInitial(name)}
+              {getInitial(user.name)}
             </div>
           )}
         </div>
@@ -33,10 +32,10 @@ export default async function UserInfo() {
         {/* Name */}
         <div className="hidden sm:block">
           <p className="max-w-40 truncate text-sm font-semibold text-slate-900">
-            {name + " 様"}
+            {user.name + " 様"}
           </p>
         </div>
       </div>
-    </Link>
+    </Button>
   );
 }

@@ -7,8 +7,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import { Card, CardContent, FormControl, FormHelperText } from "@mui/material";
 import { User } from "@/generated/prisma/client";
+import { useToast } from "../components/toastProvider";
 
 export default function Form({ user }: { user: User }) {
+  const toast = useToast();
   const clientSchema = z.object({
     name: z.string().min(1, "名前は必須です").max(50, "最大50文字です"),
   });
@@ -50,6 +52,7 @@ export default function Form({ user }: { user: User }) {
     // OKなら server action 実行
     startTransition(() => {
       formAction(formData);
+      toast.success("編集しました。");
     });
   }
 

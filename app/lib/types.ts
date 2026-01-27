@@ -18,3 +18,5 @@ export type TodoSort =
   | "PRIORITY_ASC" // 優先度：低い順
   | "DEADLINE_ASC" // 期限：近い順
   | "DEADLINE_DESC"; // 期限：遠い順
+
+export type UserLite = { name: string; image: string; email: string };

@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/app/components/toastProvider";
 import { CreateFormState, createTodoAction } from "@/app/lib/actions";
 import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
 import {
@@ -17,6 +18,7 @@ import { startTransition, useActionState, useMemo, useState } from "react";
 import { z } from "zod";
 
 export default function Form() {
+  const toast = useToast();
   const clientSchema = z.object({
     title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
     content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
@@ -72,6 +74,7 @@ export default function Form() {
     // OKなら server action 実行
     startTransition(() => {
       formAction(formData);
+      toast.success("追加しました。");
     });
   }
 
