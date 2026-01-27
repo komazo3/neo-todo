@@ -1,8 +1,6 @@
 "use client";
-
-import { UpdateFormState, updateTodoAction } from "@/app/lib/actions";
+import { CreateFormState, createTodoAction } from "@/app/lib/actions";
 import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
-import { TodoDTO } from "@/app/lib/types";
 import {
   Button,
   Card,
@@ -15,10 +13,10 @@ import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import { z } from "zod";
 
-export default function Form({ todo }: { todo: TodoDTO }) {
+export default function Form() {
   const clientSchema = z.object({
     title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
     content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
@@ -37,9 +35,9 @@ export default function Form({ todo }: { todo: TodoDTO }) {
   type TodoInput = z.infer<typeof clientSchema>;
   type ClientErrors = Partial<Record<keyof TodoInput, string[]>>;
 
-  const initialState: UpdateFormState = { message: "", errors: {} };
+  const initialState: CreateFormState = { message: "", errors: {} };
   const [serverState, formAction] = useActionState(
-    updateTodoAction,
+    createTodoAction,
     initialState,
   );
 
@@ -85,7 +83,6 @@ export default function Form({ todo }: { todo: TodoDTO }) {
   return (
     <Card className="p-5 sm:p-6">
       <form onSubmit={onSubmit}>
-        <input type="hidden" name="id" value={todo.id} />
         <div>
           <TextField
             id="title"
@@ -95,7 +92,6 @@ export default function Form({ todo }: { todo: TodoDTO }) {
             variant="outlined"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 50 } }}
-            defaultValue={todo.title}
             error={!!titleErrors?.length}
           />
           <FormHelperText>最大50文字</FormHelperText>
@@ -111,12 +107,11 @@ export default function Form({ todo }: { todo: TodoDTO }) {
             name="content"
             multiline
             margin="normal"
-            rows={5}
+            rows={10}
             label="*内容"
             variant="outlined"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 500 } }}
-            defaultValue={todo.content}
             error={!!contentErrors?.length}
           />
           <FormHelperText>最大500文字</FormHelperText>
@@ -134,7 +129,6 @@ export default function Form({ todo }: { todo: TodoDTO }) {
               select
               label="*優先度"
               fullWidth
-              defaultValue={todo.priority}
               error={!!priorityErrors?.length}
             >
               <MenuItem value="" disabled>
@@ -160,7 +154,6 @@ export default function Form({ todo }: { todo: TodoDTO }) {
                 name="deadline"
                 label="*期限"
                 sx={{ width: "100%" }}
-                defaultValue={todo.deadline}
                 slotProps={{
                   textField: {
                     error: !!deadlineErrors?.length,
@@ -181,7 +174,7 @@ export default function Form({ todo }: { todo: TodoDTO }) {
           </Button>
 
           <Button type="submit" color="primary">
-            編集
+            追加
           </Button>
         </CardActions>
       </form>

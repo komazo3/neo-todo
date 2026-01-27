@@ -5,7 +5,7 @@ import { UpdateFormState, updateUserAction } from "../lib/actions";
 import { z } from "zod";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import { Card, FormHelperText } from "@mui/material";
+import { Card, CardContent, FormControl, FormHelperText } from "@mui/material";
 import { User } from "@/generated/prisma/client";
 
 export default function Form({ user }: { user: User }) {
@@ -55,26 +55,32 @@ export default function Form({ user }: { user: User }) {
 
   const nameErrors = mergedErrors("name");
   return (
-    <Card>
-      <form onSubmit={onSubmit}>
-        <input type="hidden" name="id" value={user.id} />
-        <TextField
-          id="name"
-          name="name"
-          label="*名前"
-          fullWidth
-          variant="outlined"
-          defaultValue={user?.name}
-          error={!!nameErrors?.length}
-        />
-        <FormHelperText>最大50文字</FormHelperText>
-        {nameErrors?.length && (
-          <FormHelperText error>{nameErrors[0]}</FormHelperText>
-        )}
-        <Button type="submit" fullWidth variant="contained">
-          保存
-        </Button>
-      </form>
+    <Card className="p-5">
+      <CardContent>
+        <form onSubmit={onSubmit}>
+          <div className="flex flex-col gap-5">
+            <input type="hidden" name="id" value={user.id} />
+            <div>
+              <TextField
+                id="name"
+                name="name"
+                label="*名前"
+                fullWidth
+                variant="outlined"
+                defaultValue={user?.name}
+                error={!!nameErrors?.length}
+              />
+              <FormHelperText>最大50文字</FormHelperText>
+              {nameErrors?.length && (
+                <FormHelperText error>{nameErrors[0]}</FormHelperText>
+              )}
+            </div>
+            <Button type="submit" variant="contained">
+              保存
+            </Button>
+          </div>
+        </form>
+      </CardContent>
     </Card>
   );
 }

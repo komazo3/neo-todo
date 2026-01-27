@@ -15,6 +15,8 @@ type Props = {
 };
 
 export default async function Page({ searchParams }: Props) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
   const sp = await searchParams;
   const status =
     sp?.status === "DONE"
@@ -22,8 +24,7 @@ export default async function Page({ searchParams }: Props) {
       : sp?.status === "UNTOUCHED"
         ? Status.UNTOUCHED
         : undefined;
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+
   const todos: Todo[] = await listTodos(session.user.id, status);
   const dto: TodoDTO[] = todos.map((t) => ({
     id: t.id,

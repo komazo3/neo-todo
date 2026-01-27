@@ -8,10 +8,13 @@ import { TodoDTO } from "../lib/types";
 import PriorityChip from "./priorityChip";
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { Status } from "@/generated/prisma/enums";
 
@@ -54,8 +57,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
           <li key={todo.id} className="px-4 py-4 sm:px-6">
             <div className="flex items-start gap-3">
               {/* <!-- complete toggle --> */}
-              <input
-                type="checkbox"
+              <Checkbox
                 aria-label="完了切り替え"
                 className="mt-1 h-5 w-5 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
                 checked={todo.status === Status.DONE}
@@ -73,26 +75,19 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                   </span>
                 </div>
 
-                <p className="whitespace-pre-line mt-1 line-clamp-2 text-sm text-slate-600">
+                <p className="whitespace-pre-line mt-1 break-all text-sm text-slate-600">
                   {todo.content}
                 </p>
               </div>
 
               {/* <!-- actions --> */}
               <div className="flex shrink-0 items-center gap-2">
-                <Link
-                  href={`/todos/${todo.id}`}
-                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
-                >
+                <Button component={Link} href={`/todos/${todo.id}`}>
                   編集
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => handleClickOpen(todo.id)}
-                  className="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 shadow-sm hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-100"
-                >
+                </Button>
+                <Button color="error" onClick={() => handleClickOpen(todo.id)}>
                   削除
-                </button>
+                </Button>
               </div>
             </div>
             <Dialog

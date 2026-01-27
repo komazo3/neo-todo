@@ -4,3 +4,9 @@ export function formatDateTime(data: Date) {
     minute: "2-digit",
   });
 }
+
+export function getInitial(name?: string | null) {
+  const n = (name ?? "").trim();
+  if (!n) return "?";
+  return n[0].toUpperCase();
+}

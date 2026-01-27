@@ -7,7 +7,7 @@ export default async function Header() {
   const session = await auth();
   const isLoggedIn = session?.user;
   return (
-    <div className="border-b border-slate-200 bg-white">
+    <header className="fixed w-full border-b border-slate-200 bg-white z-10">
       <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Logo */}
         <Link
@@ -34,16 +34,11 @@ export default async function Header() {
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <Button
-                type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
-              >
-                Log out
-              </Button>
+              <Button type="submit">Log out</Button>
             </form>
           </div>
         )}
       </div>
-    </div>
+    </header>
   );
 }
