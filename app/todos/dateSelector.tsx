@@ -14,10 +14,14 @@ export default function DateSelector({ currentDate }: Props) {
   const searchParams = useSearchParams();
 
   const displayDate = currentDate || new Date();
+  console.log(displayDate);
 
   const getDateQueryString = (date: Date): string => {
     const params = new URLSearchParams(searchParams);
-    params.set("date", date.toISOString().split("T")[0]);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    params.set("date", `${year}-${month}-${day}`);
     return `?${params.toString()}`;
   };
 

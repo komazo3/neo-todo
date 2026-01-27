@@ -23,8 +23,12 @@ export default async function Page({ searchParams }: Props) {
   // date だけは Server 側で確定（最初の一覧取得に必要）
   let targetDate: Date;
   if (sp?.date) {
-    const parsed = new Date(sp.date);
-    targetDate = isNaN(parsed.getTime()) ? new Date() : parsed;
+    const [year, month, day] = sp.date.split("-").map(Number);
+    if (year && month && day) {
+      targetDate = new Date(year, month - 1, day);
+    } else {
+      targetDate = new Date();
+    }
   } else {
     targetDate = new Date();
   }
