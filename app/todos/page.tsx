@@ -10,10 +10,11 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import SortSelect from "./sortSelect";
 import { SORTITEMS } from "../lib/constants";
+import DateSelector from "./dateSelector";
 
 export const dynamic = "force-dynamic";
 type Props = {
-  searchParams?: Promise<{ status?: string; sort?: string }>;
+  searchParams?: Promise<{ status?: string; sort?: string; date?: string }>;
 };
 
 function parseStatus(v?: string): Status | undefined {
@@ -41,7 +42,15 @@ export default async function Page({ searchParams }: Props) {
   const status = parseStatus(sp?.status);
   const sort = parseSort(sp?.sort);
 
-  const todos = await listTodos(session.user.id, status, sort);
+  let targetDate: Date | undefined;
+  if (sp?.date) {
+    const parsed = new Date(sp.date);
+    if (!isNaN(parsed.getTime())) {
+      targetDate = parsed;
+    }
+  }
+
+  const todos = await listTodos(session.user.id, status, sort, targetDate);
   const dto: TodoDTO[] = todos.map((t) => ({
     id: t.id,
     title: t.title,
@@ -55,6 +64,10 @@ export default async function Page({ searchParams }: Props) {
     <>
       {/* <!-- Header --> */}
       <SubHeader title={"TODO一覧"}></SubHeader>
+
+      {/* <!-- Date Selector --> */}
+      <DateSelector currentDate={targetDate} />
+
       {/* <!-- Filters / Search (optional UI for portfolio look) --> */}
       <section className="mb-4 grid gap-3 sm:grid-cols-3">
         <StatusFilter current={status ?? "ALL"}></StatusFilter>

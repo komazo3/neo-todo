@@ -28,9 +28,27 @@ export async function listTodos(
   userId: string,
   status?: Status,
   sort?: TodoSort,
+  targetDate?: Date,
 ): Promise<Todo[]> {
+  const where: Prisma.TodoWhereInput = {
+    userId: userId,
+    status: status ? status : undefined,
+  };
+
+  if (targetDate) {
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    where.deadline = {
+      gte: startOfDay,
+      lte: endOfDay,
+    };
+  }
+
   return prisma.todo.findMany({
-    where: { status: status ? status : undefined, userId: userId },
+    where,
     orderBy: buildTodoOrderBy(sort),
   });
 }
