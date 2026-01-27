@@ -50,6 +50,8 @@ export default async function Page({ searchParams }: Props) {
     if (!isNaN(parsed.getTime())) {
       targetDate = parsed;
     }
+  } else {
+    targetDate = new Date();
   }
 
   const todos = await listTodos(session.user.id, status, sort, targetDate);

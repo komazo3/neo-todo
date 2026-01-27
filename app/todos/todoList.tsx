@@ -32,6 +32,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
     startTransition(async () => {
       try {
         await updateTodoStatusAction(todoId, checked);
+        toast.success("更新しました。");
       } catch {
         toast.error("更新が失敗しました。");
       }

@@ -177,7 +177,6 @@ export async function updateTodoStatusAction(id: number, done: boolean) {
   }
 
   revalidatePath("/todos");
-  redirect("/todos");
 }
 
 export async function deleteTodoAction(id: number) {
