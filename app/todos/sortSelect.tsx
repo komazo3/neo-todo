@@ -2,9 +2,9 @@
 
 import { ListItem, MenuItem, TextField } from "@mui/material";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DISPLAYSTATUS } from "../lib/constants";
+import { DISPLAYSTATUS, SORTITEMS } from "../lib/constants";
 
-export default function StatusFilter({ current }: { current: string }) {
+export default function SortSelect({ current }: { current: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -13,11 +13,7 @@ export default function StatusFilter({ current }: { current: string }) {
     const value = e.target.value;
 
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "ALL") {
-      params.delete("status");
-    } else {
-      params.set("status", value);
-    }
+    params.set("sort", value);
 
     router.push(`${pathname}?${params.toString()}`);
   }
@@ -25,16 +21,17 @@ export default function StatusFilter({ current }: { current: string }) {
   return (
     <label className="block">
       <TextField
-        label="ステータス"
+        label="並び替え"
         size="small"
         value={current}
         select
         fullWidth
         onChange={onChange}
       >
-        <MenuItem value={DISPLAYSTATUS.ALL}>すべて</MenuItem>
-        <MenuItem value={DISPLAYSTATUS.UNTOUCHED}>未完了</MenuItem>
-        <MenuItem value={DISPLAYSTATUS.DONE}>完了</MenuItem>
+        <MenuItem value={SORTITEMS.PRIORITY_ASC}>優先度が低い順</MenuItem>
+        <MenuItem value={SORTITEMS.PRIORITY_DESC}>優先度が高い順</MenuItem>
+        <MenuItem value={SORTITEMS.DEADLINE_ASC}>期限が近い順</MenuItem>
+        <MenuItem value={SORTITEMS.DEADLINE_DESC}>期限が遠い順</MenuItem>
       </TextField>
     </label>
   );

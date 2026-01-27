@@ -5,27 +5,43 @@ import StatusFilter from "./statusFIlter";
 import { listTodos } from "../lib/database";
 import { Status } from "@/generated/prisma/enums";
 import { Todo } from "@/generated/prisma/client";
-import { TodoDTO } from "../lib/types";
+import { TodoDTO, TodoSort } from "../lib/types";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import SortSelect from "./sortSelect";
+import { SORTITEMS } from "../lib/constants";
 
 export const dynamic = "force-dynamic";
 type Props = {
-  searchParams?: Promise<{ status?: string }>;
+  searchParams?: Promise<{ status?: string; sort?: string }>;
 };
+
+function parseStatus(v?: string): Status | undefined {
+  if (v === "DONE") return Status.DONE;
+  if (v === "UNTOUCHED") return Status.UNTOUCHED;
+  return undefined;
+}
+
+function parseSort(v?: string): TodoSort | undefined {
+  switch (v) {
+    case "PRIORITY_DESC":
+    case "PRIORITY_ASC":
+    case "DEADLINE_ASC":
+    case "DEADLINE_DESC":
+      return v; // v は TodoSort として安全
+    default:
+      return undefined; // 不正値は無視してデフォルトへ
+  }
+}
 
 export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const sp = await searchParams;
-  const status =
-    sp?.status === "DONE"
-      ? Status.DONE
-      : sp?.status === "UNTOUCHED"
-        ? Status.UNTOUCHED
-        : undefined;
+  const sp = await searchParams; // app router の searchParams は await 不要
+  const status = parseStatus(sp?.status);
+  const sort = parseSort(sp?.sort);
 
-  const todos: Todo[] = await listTodos(session.user.id, status);
+  const todos = await listTodos(session.user.id, status, sort);
   const dto: TodoDTO[] = todos.map((t) => ({
     id: t.id,
     title: t.title,
@@ -42,6 +58,7 @@ export default async function Page({ searchParams }: Props) {
       {/* <!-- Filters / Search (optional UI for portfolio look) --> */}
       <section className="mb-4 grid gap-3 sm:grid-cols-3">
         <StatusFilter current={status ?? "ALL"}></StatusFilter>
+        <SortSelect current={sort ?? SORTITEMS.DEADLINE_ASC}></SortSelect>
         <Link
           href="/todos/new"
           className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"

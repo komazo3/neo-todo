@@ -1,4 +1,4 @@
-import { Status, Todo } from "@/generated/prisma/client";
+import { Prisma, Status, Todo } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
 import {
   TodoCreateInput,
@@ -6,13 +6,32 @@ import {
   UserUpdateInput,
 } from "@/generated/prisma/models";
 import "server-only";
+import { TodoSort } from "./types";
+
+function buildTodoOrderBy(
+  sort?: TodoSort,
+): Prisma.TodoOrderByWithRelationInput[] {
+  switch (sort) {
+    case "PRIORITY_DESC":
+      return [{ priority: "desc" }, { deadline: "asc" }];
+    case "PRIORITY_ASC":
+      return [{ priority: "asc" }, { deadline: "asc" }];
+    case "DEADLINE_DESC":
+      return [{ deadline: "desc" }];
+    case "DEADLINE_ASC":
+    default:
+      return [{ deadline: "asc" }];
+  }
+}
+
 export async function listTodos(
   userId: string,
   status?: Status,
+  sort?: TodoSort,
 ): Promise<Todo[]> {
   return prisma.todo.findMany({
     where: { status: status ? status : undefined, userId: userId },
-    orderBy: { deadline: "asc" },
+    orderBy: buildTodoOrderBy(sort),
   });
 }
 
