@@ -1,21 +1,41 @@
 import { createTransport } from "nodemailer";
+import type { NodemailerConfig } from "next-auth/providers/nodemailer";
 
-type Theme = {
+type EmailTheme = {
   brandColor?: string;
   buttonText?: string;
 };
 
-type Params = {
-  identifier: string; // email
-  url: string; // magic link
-  provider: { server: any; from: string };
-  theme: Theme;
+type SendVerificationRequestParams = {
+  identifier: string;
+  url: string;
+  expires: Date;
+  provider: NodemailerConfig;
+  token: string;
+  theme: EmailTheme;
+  request: Request;
 };
 
-export async function sendVerificationRequest(params: Params) {
+type SendMailResult = {
+  rejected?: string[];
+  pending?: string[];
+};
+
+export async function sendVerificationRequest(
+  params: SendVerificationRequestParams,
+) {
   const { identifier, url, provider, theme } = params;
 
-  const host = new URL(url).host; // 例: localhost:3000 や your-domain.com
+  if (!provider.server) {
+    throw new Error(
+      "EMAIL_SERVER is not configured (provider.server is missing).",
+    );
+  }
+  if (!provider.from) {
+    throw new Error("EMAIL_FROM is not configured (provider.from is missing).");
+  }
+
+  const host = new URL(url).host;
   const transport = createTransport(provider.server);
 
   const result = await transport.sendMail({
@@ -23,12 +43,17 @@ export async function sendVerificationRequest(params: Params) {
     from: provider.from,
     subject: subject({ host }),
     text: text({ url, host }),
-    html: html({ url, host, theme }),
+    html: html({ url, host, theme: theme as any }), // Theme の型が合わない場合の保険
   });
 
-  const failed = (result.rejected ?? [])
-    .concat(result.pending ?? [])
-    .filter(Boolean);
+  const rejected = (result as SendMailResult).rejected ?? [];
+  const pending =
+    "pending" in (result as object)
+      ? ((result as SendMailResult).pending ?? [])
+      : [];
+
+  const failed = rejected.concat(pending).filter(Boolean);
+
   if (failed.length) {
     throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
   }
@@ -50,19 +75,23 @@ function text({ url, host }: { url: string; host: string }) {
   ].join("\n");
 }
 
-function html(params: { url: string; host: string; theme: Theme }) {
+function html(params: {
+  url: string;
+  host: string;
+  theme: { brandColor?: string; buttonText?: string };
+}) {
   const { url, host, theme } = params;
 
   const escapedHost = host.replace(/\./g, "&#8203;.");
-  const brandColor = theme.brandColor || "#0f172a"; // slate-900 っぽい
+  const brandColor = theme.brandColor || "#0f172a";
   const buttonText = theme.buttonText || "#ffffff";
 
   const color = {
-    background: "#f8fafc", // slate-50
-    text: "#0f172a", // slate-900
-    muted: "#475569", // slate-600
+    background: "#f8fafc",
+    text: "#0f172a",
+    muted: "#475569",
     card: "#ffffff",
-    border: "#e2e8f0", // slate-200
+    border: "#e2e8f0",
     brand: brandColor,
     buttonText,
   };
@@ -75,9 +104,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background:${color.card}; border:1px solid ${color.border}; border-radius:16px; overflow:hidden;">
           <tr>
             <td style="padding:20px 24px; background:${color.card};">
-              <div style="font-size:18px; font-weight:700; color:${color.text};">
-                TODO Today へログイン
-              </div>
+              <div style="font-size:18px; font-weight:700; color:${color.text};">TODO Today へログイン</div>
               <div style="margin-top:8px; font-size:14px; color:${color.muted}; line-height:1.6;">
                 <strong>${escapedHost}</strong> へのログインリンクです。下のボタンをクリックしてください。
               </div>
