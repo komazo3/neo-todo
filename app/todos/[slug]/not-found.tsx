@@ -8,7 +8,7 @@ export default function TodoNotFound() {
       <p className="mt-2 text-slate-600">
         編集しようとした TODO は見つかりませんでした。
       </p>
-      <Button component={Link} href="/todos">
+      <Button component={Link} href="/todos" variant="outlined">
         一覧画面に戻る
       </Button>
     </div>

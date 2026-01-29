@@ -174,11 +174,11 @@ export default function NewTodoForm() {
         </div>
 
         <CardActions sx={{ justifyContent: "flex-end" }}>
-          <Button component={Link} href="/todos">
+          <Button component={Link} href="/todos" variant="outlined">
             キャンセル
           </Button>
 
-          <Button type="submit" color="primary">
+          <Button type="submit" color="primary" variant="contained">
             追加
           </Button>
         </CardActions>

@@ -104,7 +104,7 @@ export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
             name="content"
             multiline
             margin="normal"
-            rows={5}
+            rows={10}
             label="内容"
             variant="outlined"
             fullWidth
@@ -184,11 +184,11 @@ export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
         </div>
 
         <CardActions sx={{ justifyContent: "flex-end" }}>
-          <Button component={Link} href="/todos">
+          <Button component={Link} href="/todos" variant="outlined">
             キャンセル
           </Button>
 
-          <Button type="submit" color="primary">
+          <Button type="submit" color="primary" variant="contained">
             編集
           </Button>
         </CardActions>

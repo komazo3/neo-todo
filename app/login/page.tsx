@@ -21,7 +21,7 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Card className="p-5">
+      <Card >
         <CardHeader title="ログイン" />
         <CardContent>
           <div className="flex flex-col gap-5">
@@ -34,6 +34,7 @@ export default async function LoginPage() {
             >
               <Button
                 type="submit"
+                variant="outlined"
                 fullWidth
                 startIcon={
                   <div className="gsi-material-button-icon">
@@ -66,7 +67,7 @@ export default async function LoginPage() {
                   </div>
                 }
               >
-                Googleアカウントでログイン
+                <span className="whitespace-nowrap">Googleアカウントでログイン</span>
               </Button>
             </form>
             <Divider>または</Divider>
@@ -86,7 +87,7 @@ export default async function LoginPage() {
                   label="メールアドレス"
                   required
                 />
-                <Button type="submit">メールアドレスでログイン</Button>
+                <Button type="submit" variant="outlined">メールアドレスでログイン</Button>
               </div>
             </form>
           </div>

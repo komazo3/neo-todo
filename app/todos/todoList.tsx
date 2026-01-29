@@ -70,8 +70,8 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
     <>
       <ul className="divide-y divide-slate-200">
         {optimisticTodos.map((todo) => (
-          <li key={todo.id} className="px-4 py-4 sm:px-6">
-            <div className="flex items-start gap-3">
+          <li key={todo.id} className="px-1 py-4 sm:px-6">
+            <div className="flex justify-around items-start gap-2">
               <Checkbox
                 aria-label="完了切り替え"
                 checked={todo.status === Status.DONE}
@@ -79,26 +79,28 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
               />
 
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-semibold">{todo.title}</p>
-                  <PriorityChip priority={todo.priority} />
-                  <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    {todo.isAllDay
-                      ? "当日中"
-                      : `期限: ${format(todo.deadline, "HH:mm")}`}
-                  </span>
+                <div className="flex flex-col items-center gap-2 sm:flex-row">
+                  <p className="whitespace-pre-wrap text-sm font-semibold">{todo.title}</p>
+                  <div className="flex items-center gap-2">
+                    <PriorityChip priority={todo.priority} />
+                    <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 whitespace-nowrap">
+                      {todo.isAllDay
+                        ? "当日中"
+                        : `期限: ${format(todo.deadline, "HH:mm")}`}
+                    </span>
+                  </div>
                 </div>
 
-                <p className="whitespace-pre-line mt-1 break-all text-sm text-slate-600">
+                <p className="whitespace-pre-line mt-1 break-all text-sm text-slate-600 max-w-[50vw]">
                   {todo.content}
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <Button component={Link} href={`/todos/${todo.id}`}>
+              <div className="flex flex-col shrink-0 items-center gap-2 sm:flex-row">
+                <Button component={Link} href={`/todos/${todo.id}`} variant="outlined">
                   編集
                 </Button>
-                <Button color="error" onClick={() => setOpenedTodoId(todo.id)}>
+                <Button color="error" onClick={() => setOpenedTodoId(todo.id)} variant="outlined">
                   削除
                 </Button>
               </div>
@@ -114,10 +116,11 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                 <Button
                   onClick={() => handleDeleteTodo(todo.id)}
                   disabled={isPending}
+                  variant="contained"
                 >
                   OK
                 </Button>
-                <Button onClick={handleCloseDialog} autoFocus>
+                <Button onClick={handleCloseDialog} autoFocus variant="outlined">
                   キャンセル
                 </Button>
               </DialogActions>

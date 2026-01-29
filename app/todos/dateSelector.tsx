@@ -46,18 +46,24 @@ export default function DateSelector({ currentDate }: DateSelectorProps) {
   }, [router, getDateQueryString]);
 
   return (
-    <div className="mb-6 flex items-center justify-center gap-4">
-      <Button onClick={handlePrevDay}>← 前日</Button>
+    <div className="mb-6 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+      <Button onClick={handlePrevDay} size="small" variant="outlined">
+        ← 前日
+      </Button>
 
       <div className="min-w-35 text-center">
-        <p className="text-lg font-semibold text-slate-900">
+        <p className="text-base font-semibold text-slate-900 sm:text-lg">
           {formatDate(displayDate)}
         </p>
       </div>
 
-      <Button onClick={handleNextDay}>翌日 →</Button>
+      <Button onClick={handleNextDay} size="small" variant="outlined">
+        翌日 →
+      </Button>
 
-      <Button onClick={handleToday}>本日</Button>
+      <Button onClick={handleToday} size="small" variant="outlined">
+        本日
+      </Button>
     </div>
   );
 }
