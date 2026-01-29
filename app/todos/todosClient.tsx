@@ -70,11 +70,15 @@ export default function TodosClient({
       }
     });
 
-    // 全日フラグが true のものは常に末尾へ移動する
-    const notAllDay = copy.filter((t) => !t.isAllDay);
-    const allDay = copy.filter((t) => t.isAllDay);
+    if (sort === "DEADLINE_ASC" || sort == "DEADLINE_DESC") {
+      // 全日フラグが true のものは常に末尾へ移動する
+      const notAllDay = copy.filter((t) => !t.isAllDay);
+      const allDay = copy.filter((t) => t.isAllDay);
 
-    return [...notAllDay, ...allDay];
+      return [...notAllDay, ...allDay];
+    } else {
+      return copy;
+    }
   }, [initialTodos, status, sort]);
 
   return (

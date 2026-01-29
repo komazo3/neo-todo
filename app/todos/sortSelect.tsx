@@ -24,10 +24,10 @@ export default function SortSelect({
         fullWidth
         onChange={handleChange}
       >
-        <MenuItem value={SORTITEMS.PRIORITY_ASC}>優先度が低い順</MenuItem>
-        <MenuItem value={SORTITEMS.PRIORITY_DESC}>優先度が高い順</MenuItem>
         <MenuItem value={SORTITEMS.DEADLINE_ASC}>期限が近い順</MenuItem>
         <MenuItem value={SORTITEMS.DEADLINE_DESC}>期限が遠い順</MenuItem>
+        <MenuItem value={SORTITEMS.PRIORITY_ASC}>優先度が低い順</MenuItem>
+        <MenuItem value={SORTITEMS.PRIORITY_DESC}>優先度が高い順</MenuItem>
       </TextField>
     </label>
   );
