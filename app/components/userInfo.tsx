@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { getInitial } from "../lib/util";
+import Image from "next/image";
+import { getInitial } from "@/app/lib/util";
+import type { UserLite } from "@/app/lib/types";
 import { Button } from "@mui/material";
-import { UserLite } from "../lib/types";
 
 export default function UserInfo({ user }: { user: UserLite }) {
   return (
@@ -12,15 +13,18 @@ export default function UserInfo({ user }: { user: UserLite }) {
       href="/mypage"
       className="rounded-xl border-gray-400"
     >
-      <div className="flex items-center gap-2  px-2 py-1">
+      <div className="flex items-center gap-2 px-2 py-1">
         {/* Avatar */}
-        <div className="relative h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-white">
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white">
           {user.image ? (
-            <img
+            <Image
               src={user.image}
-              alt={`${user.name} avatar`}
-              className="h-full w-full object-cover"
+              alt={`${user.name}のアバター`}
+              width={36}
+              height={36}
+              className="object-cover"
               referrerPolicy="no-referrer"
+              unoptimized
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-sm font-semibold text-slate-700">

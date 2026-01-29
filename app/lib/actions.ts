@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   deleteTodo,
-  getTodo,
   insertTodo,
   updateTodo,
   updateTodoStatus,
@@ -13,8 +12,6 @@ import {
 } from "./database";
 import "server-only";
 import { auth, signOut } from "@/auth";
-import { startOfDay } from "date-fns";
-import Error from "next/error";
 // Create だけのスキーマに絞る（id/status は不要）
 const CreateTodo = z
   .object({
@@ -137,13 +134,10 @@ export async function createTodoAction(
   });
 
   if (!validated.success) {
-    const errorResponse = {
+    return {
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
     };
-    console.error(errorResponse);
-    console.error(formData);
-    return errorResponse;
   }
 
   try {
@@ -155,13 +149,11 @@ export async function createTodoAction(
       isAllDay: validated.data.isAllDay,
       user: { connect: { id: session.user.id } },
     });
-  } catch (e: any) {
-    const errorResponse = {
+  } catch (e: unknown) {
+    return {
       errors: {},
-      message: e.message,
+      message: e instanceof Error ? e.message : "TODOの追加に失敗しました。",
     };
-    console.error(errorResponse);
-    return errorResponse;
   }
 
   revalidatePath("/todos");
@@ -172,7 +164,11 @@ export async function updateTodoAction(
   formState: UpdateFormState,
   formData: FormData,
 ) {
-  console.log(formData.get("deadlineDate"));
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。" };
+  }
+
   const validated = UpdateTodo.safeParse({
     id: formData.get("id"),
     title: formData.get("title"),
@@ -190,7 +186,7 @@ export async function updateTodoAction(
   }
 
   try {
-    await updateTodo(validated.data.id, {
+    await updateTodo(validated.data.id, session.user.id, {
       title: validated.data.title,
       content: validated.data.content,
       priority: validated.data.priority,
@@ -209,23 +205,22 @@ export async function updateTodoAction(
 }
 
 export async function updateTodoStatusAction(id: number, done: boolean) {
-  const validated = UpdateTodoStatus.safeParse({
-    id: id,
-    done: done,
-  });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。" };
+  }
+
+  const validated = UpdateTodoStatus.safeParse({ done });
 
   if (!validated.success) {
-    const errorResponse = {
+    return {
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
     };
-    console.error(errorResponse);
-    console.error(done);
-    return errorResponse;
   }
 
   try {
-    await updateTodoStatus(id, validated.data.done);
+    await updateTodoStatus(id, session.user.id, validated.data.done);
   } catch {
     return {
       errors: {},
@@ -237,14 +232,15 @@ export async function updateTodoStatusAction(id: number, done: boolean) {
 }
 
 export async function deleteTodoAction(id: number) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("ログインが必要です。");
+  }
+
   try {
-    await deleteTodo(id);
-  } catch (e) {
-    console.error(e);
-    return {
-      errors: {},
-      message: "Database Error: Failed to delete todo.",
-    };
+    await deleteTodo(id, session.user.id);
+  } catch {
+    throw new Error("Database Error: Failed to delete todo.");
   }
   revalidatePath("/todos");
 }
@@ -253,6 +249,11 @@ export async function updateUserAction(
   formState: UpdateFormState | undefined,
   formData: FormData,
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。" };
+  }
+
   const validated = UpdateUser.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
@@ -263,6 +264,10 @@ export async function updateUserAction(
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
     };
+  }
+
+  if (validated.data.id !== session.user.id) {
+    return { errors: {}, message: "不正なリクエストです。" };
   }
 
   try {

@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { formatDateTime } from "../lib/util";
+import { format } from "date-fns";
 import { useOptimistic, useState, useTransition } from "react";
-import { deleteTodoAction, updateTodoStatusAction } from "../lib/actions";
-import { TodoDTO } from "../lib/types";
+import { deleteTodoAction, updateTodoStatusAction } from "@/app/lib/actions";
+import type { TodoDTO } from "@/app/lib/types";
 import PriorityChip from "./priorityChip";
 import {
-  Alert,
   Button,
   Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
-  Snackbar,
 } from "@mui/material";
 import { Status } from "@/generated/prisma/enums";
-import { useToast } from "../components/toastProvider";
-import { format } from "date-fns";
+import { useToast } from "@/app/components/toastProvider";
 
 export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   const [openedTodoId, setOpenedTodoId] = useState<number | null>(null);

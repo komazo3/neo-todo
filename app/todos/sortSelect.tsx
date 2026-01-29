@@ -1,7 +1,7 @@
 "use client";
 
 import { MenuItem, TextField } from "@mui/material";
-import { SORTITEMS } from "../lib/constants";
+import { SORTITEMS } from "@/app/lib/constants";
 
 export default function SortSelect({
   current,

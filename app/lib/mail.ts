@@ -43,7 +43,11 @@ export async function sendVerificationRequest(
     from: provider.from,
     subject: subject({ host }),
     text: text({ url, host }),
-    html: html({ url, host, theme: theme as any }), // Theme の型が合わない場合の保険
+    html: html({
+      url,
+      host,
+      theme: theme as { brandColor?: string; buttonText?: string },
+    }),
   });
 
   const rejected = (result as SendMailResult).rejected ?? [];

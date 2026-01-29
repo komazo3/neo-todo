@@ -1,7 +1,13 @@
 "use client";
+
 import { useToast } from "@/app/components/toastProvider";
 import { CreateFormState, createTodoAction } from "@/app/lib/actions";
 import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
+import {
+  todoFormSchema,
+  type TodoFormErrors,
+  type TodoFormInput,
+} from "@/app/lib/schemas";
 import {
   Button,
   Card,
@@ -10,100 +16,22 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import { format, startOfDay } from "date-fns";
-import {
-  DatePicker,
-  DateTimePicker,
-  LocalizationProvider,
-  TimePicker,
-} from "@mui/x-date-pickers";
+import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { error } from "console";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
-import { startTransition, useActionState, useMemo, useState } from "react";
-import { z } from "zod";
+import { startTransition, useActionState, useState } from "react";
 
-export default function Form() {
+export default function NewTodoForm() {
   const toast = useToast();
-  const clientSchema = z
-    .object({
-      title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
-      content: z.string().max(500, "最大500文字です"),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
-        message: "優先度を選択してください",
-      }),
-      deadlineDate: z
-        .string()
-        .min(1, "期限日は必須です")
-        .transform((v) => new Date(v))
-        .refine(
-          (d) => !Number.isNaN(d.getTime()),
-          "期限日を正しく入力してください",
-        )
-        .refine(
-          (d) => d >= startOfDay(new Date()),
-          "現在以降の日を入力してください",
-        ),
-      deadlineTime: z.preprocess(
-        (v) => (v === "" ? undefined : v),
-        z
-          .string()
-          .regex(
-            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            "時刻の形式が正しくありません",
-          )
-          .optional(),
-      ),
-    })
-    .superRefine((data, ctx) => {
-      const [y, m, d] = format(data.deadlineDate, "yyyy-MM-dd")
-        .split("-")
-        .map(Number);
-
-      // 日付はローカル 00:00 をベースに作る（UTC事故回避）
-      const deadline = new Date(y, m - 1, d, 0, 0, 0, 0);
-
-      if (data.deadlineTime) {
-        const [hh, mm] = data.deadlineTime.split(":").map(Number);
-        deadline.setHours(hh, mm, 0, 0);
-      } else {
-        // 時刻なし＝終日扱い（好きに決めてOK）
-        deadline.setHours(23, 59, 59, 0);
-      }
-
-      // 「現在以降」判定（ミリ秒比較）
-      const now = new Date();
-      if (deadline.getTime() < now.getTime()) {
-        // 👇 日付にも
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["deadlineDate"],
-          message: "期限は現在以降を指定してください。",
-        });
-
-        // 👇 時刻にも
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["deadlineTime"],
-          message: "期限は現在以降を指定してください。",
-        });
-      }
-    });
-
-  type TodoInput = z.infer<typeof clientSchema>;
-  type ClientErrors = Partial<Record<keyof TodoInput, string[]>>;
-
   const initialState: CreateFormState = { message: "", errors: {} };
   const [serverState, formAction] = useActionState(
     createTodoAction,
     initialState,
   );
+  const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
 
-  const [clientErrors, setClientErrors] = useState<ClientErrors>({});
-
-  // 便利：クライアント→サーバーの順で表示
-  const mergedErrors = (field: keyof TodoInput) =>
+  const mergedErrors = (field: keyof TodoFormInput) =>
     clientErrors[field]?.length
       ? clientErrors[field]
       : (serverState.errors?.[field] as string[] | undefined);
@@ -116,7 +44,7 @@ export default function Form() {
 
     const formData = new FormData(e.currentTarget);
 
-    const parsed = clientSchema.safeParse({
+    const parsed = todoFormSchema.safeParse({
       title: formData.get("title"),
       content: formData.get("content"),
       priority: formData.get("priority"),
@@ -125,7 +53,7 @@ export default function Form() {
     });
 
     if (!parsed.success) {
-      setClientErrors(parsed.error.flatten().fieldErrors as ClientErrors);
+      setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
       return;
     }
 

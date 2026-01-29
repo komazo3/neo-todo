@@ -10,13 +10,19 @@ import {
 } from "@mui/material";
 import { redirect } from "next/navigation";
 
-export default async function Login() {
+export const metadata = {
+  title: "ログイン | Todo Today",
+  description: "Todo Today にログインします。",
+};
+
+export default async function LoginPage() {
   const session = await auth();
   if (session) redirect("/todos");
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="p-5">
-        <CardHeader title={"ログイン"}></CardHeader>
+        <CardHeader title="ログイン" />
         <CardContent>
           <div className="flex flex-col gap-5">
             {/* Google Login Button */}
@@ -77,7 +83,7 @@ export default async function Login() {
                   fullWidth
                   type="email"
                   name="email"
-                  label={"メールアドレス"}
+                  label="メールアドレス"
                   required
                 />
                 <Button type="submit">メールアドレスでログイン</Button>

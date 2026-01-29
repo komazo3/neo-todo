@@ -1,20 +1,23 @@
-// app/todos/page.tsx (Server Component)
-import SubHeader from "../components/subHeader";
+import SubHeader from "@/app/components/subHeader";
 import DateSelector from "./dateSelector";
-import AddButton from "./addButton";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { listTodos } from "../lib/database";
-import { TodoDTO } from "../lib/types";
+import { listTodos } from "@/app/lib/database";
+import type { TodoDTO } from "@/app/lib/types";
 import TodosClient from "./todosClient";
 
 export const dynamic = "force-dynamic";
 
-type Props = {
+export const metadata = {
+  title: "TODO一覧 | Todo Today",
+  description: "TODOの一覧を表示・管理します。",
+};
+
+type TodosPageProps = {
   searchParams?: Promise<{ date?: string }>;
 };
 
-export default async function Page({ searchParams }: Props) {
+export default async function TodosPage({ searchParams }: TodosPageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -53,9 +56,8 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <>
-      <SubHeader title={"TODO一覧"} />
+      <SubHeader title="TODO一覧" />
       <DateSelector currentDate={targetDate} />
-
       <TodosClient initialTodos={dto} />
     </>
   );

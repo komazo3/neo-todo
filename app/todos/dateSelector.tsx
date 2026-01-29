@@ -2,44 +2,48 @@
 
 import { Button } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
-import { formatDate } from "../lib/util";
+import { useCallback, useMemo } from "react";
+import { formatDate } from "@/app/lib/util";
 
-type Props = {
+type DateSelectorProps = {
   currentDate?: Date;
 };
 
-export default function DateSelector({ currentDate }: Props) {
+export default function DateSelector({ currentDate }: DateSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const displayDate = useMemo(
+    () => currentDate ?? new Date(),
+    [currentDate],
+  );
 
-  const displayDate = currentDate || new Date();
-  console.log(displayDate);
-
-  const getDateQueryString = (date: Date): string => {
-    const params = new URLSearchParams(searchParams);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    params.set("date", `${year}-${month}-${day}`);
-    return `?${params.toString()}`;
-  };
+  const getDateQueryString = useCallback(
+    (date: Date): string => {
+      const params = new URLSearchParams(searchParams);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      params.set("date", `${year}-${month}-${day}`);
+      return `?${params.toString()}`;
+    },
+    [searchParams],
+  );
 
   const handlePrevDay = useCallback(() => {
     const prevDate = new Date(displayDate);
     prevDate.setDate(prevDate.getDate() - 1);
     router.push(`/todos${getDateQueryString(prevDate)}`);
-  }, [displayDate, router, searchParams]);
+  }, [displayDate, router, getDateQueryString]);
 
   const handleNextDay = useCallback(() => {
     const nextDate = new Date(displayDate);
     nextDate.setDate(nextDate.getDate() + 1);
     router.push(`/todos${getDateQueryString(nextDate)}`);
-  }, [displayDate, router, searchParams]);
+  }, [displayDate, router, getDateQueryString]);
 
   const handleToday = useCallback(() => {
     router.push(`/todos${getDateQueryString(new Date())}`);
-  }, [router, searchParams]);
+  }, [router, getDateQueryString]);
 
   return (
     <div className="mb-6 flex items-center justify-center gap-4">

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function VerifyRequestPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -12,19 +14,19 @@ export default function VerifyRequestPage() {
         </p>
 
         <div className="mt-6 flex gap-2">
-          <a
+          <Link
             href="/login"
             className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
           >
             ログイン画面へ戻る
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/todos"
             className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             TODOへ
-          </a>
+          </Link>
         </div>
       </div>
     </main>

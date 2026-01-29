@@ -1,33 +1,26 @@
 "use client";
 
 import { startTransition, useActionState, useState } from "react";
-import { UpdateFormState, updateUserAction } from "../lib/actions";
-import { z } from "zod";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import { Card, CardContent, FormControl, FormHelperText } from "@mui/material";
-import { User } from "@/generated/prisma/client";
-import { useToast } from "../components/toastProvider";
+import { UpdateFormState, updateUserAction } from "@/app/lib/actions";
+import {
+  userFormSchema,
+  type UserFormErrors,
+  type UserFormInput,
+} from "@/app/lib/schemas";
+import { Button, Card, CardContent, FormHelperText, TextField } from "@mui/material";
+import type { User } from "@/generated/prisma/client";
+import { useToast } from "@/app/components/toastProvider";
 
-export default function Form({ user }: { user: User }) {
+export default function MypageForm({ user }: { user: User }) {
   const toast = useToast();
-  const clientSchema = z.object({
-    name: z.string().min(1, "名前は必須です").max(50, "最大50文字です"),
-  });
-
-  type UserInput = z.infer<typeof clientSchema>;
-  type ClientErrors = Partial<Record<keyof UserInput, string[]>>;
-
   const initialState: UpdateFormState = { message: "", errors: {} };
   const [serverState, formAction] = useActionState(
     updateUserAction,
     initialState,
   );
+  const [clientErrors, setClientErrors] = useState<UserFormErrors>({});
 
-  const [clientErrors, setClientErrors] = useState<ClientErrors>({});
-
-  // 便利：クライアント→サーバーの順で表示
-  const mergedErrors = (field: keyof UserInput) =>
+  const mergedErrors = (field: keyof UserFormInput) =>
     clientErrors[field]?.length
       ? clientErrors[field]
       : (serverState?.errors?.[field] as string[] | undefined);
@@ -40,12 +33,12 @@ export default function Form({ user }: { user: User }) {
 
     const formData = new FormData(e.currentTarget);
 
-    const parsed = clientSchema.safeParse({
+    const parsed = userFormSchema.safeParse({
       name: formData.get("name"),
     });
 
     if (!parsed.success) {
-      setClientErrors(parsed.error.flatten().fieldErrors as ClientErrors);
+      setClientErrors(parsed.error.flatten().fieldErrors as UserFormErrors);
       return;
     }
 

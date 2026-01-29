@@ -3,12 +3,12 @@
 
 import { useMemo, useState } from "react";
 import TodoList from "./todoList";
-import { TodoDTO, TodoSort } from "../lib/types";
+import type { TodoDTO, TodoSort } from "@/app/lib/types";
 import { Status } from "@/generated/prisma/enums";
-import { SORTITEMS, DISPLAYSTATUS } from "../lib/constants";
-import StatusFilter from "./statusFIlter";
+import { DISPLAYSTATUS, SORTITEMS } from "@/app/lib/constants";
 import SortSelect from "./sortSelect";
 import AddButton from "./addButton";
+import StatusFilter from "./statusFilter";
 
 function parseStatus(v?: string): Status | undefined {
   if (v === "DONE") return Status.DONE;

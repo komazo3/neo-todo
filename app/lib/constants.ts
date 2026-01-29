@@ -10,11 +10,11 @@ export const DISPLAYSTATUS = {
   UNTOUCHED: "UNTOUCHED",
   DONE: "DONE",
   ALL: "ALL",
-};
+} as const;
 
 export const SORTITEMS = {
   PRIORITY_ASC: "PRIORITY_ASC",
   PRIORITY_DESC: "PRIORITY_DESC",
   DEADLINE_ASC: "DEADLINE_ASC",
   DEADLINE_DESC: "DEADLINE_DESC",
-};
+} as const;
