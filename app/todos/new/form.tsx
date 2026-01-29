@@ -236,7 +236,6 @@ export default function Form() {
                   slotProps={{
                     textField: { error: !!deadlineTimeErrors?.length },
                   }}
-                  disablePast
                 />
                 {deadlineTimeErrors?.length && (
                   <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
