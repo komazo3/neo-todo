@@ -49,7 +49,7 @@ export async function listTodos(
 
   return prisma.todo.findMany({
     where,
-    orderBy: buildTodoOrderBy(sort),
+    orderBy: [{ isAllDay: "desc" }, ...buildTodoOrderBy(sort)],
   });
 }
 

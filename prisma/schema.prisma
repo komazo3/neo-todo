@@ -20,6 +20,7 @@ model Todo {
   status   Status   @default(UNTOUCHED)
   priority Priority
   deadline DateTime
+  isAllDay Boolean  @default(false)
   user     User     @relation(fields: [userId], references: [id])
   userId   String
 }

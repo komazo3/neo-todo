@@ -12,8 +12,14 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import {
+  DatePicker,
+  DateTimePicker,
+  LocalizationProvider,
+  TimePicker,
+} from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { format, startOfDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
 import { startTransition, useActionState, useState } from "react";
@@ -21,20 +27,70 @@ import { z } from "zod";
 
 export default function Form({ todo }: { todo: TodoDTO }) {
   const toast = useToast();
-  const clientSchema = z.object({
-    title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
-    content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
-      message: "優先度を選択してください",
-    }),
-    // formData は string で来るので string で受けるのが安全
-    deadline: z
-      .string()
-      .min(1, "期限は必須です")
-      .transform((v) => new Date(v))
-      .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください")
-      .refine((d) => d >= new Date(), "現在以降の日時を入力してください"),
-  });
+  const clientSchema = z
+    .object({
+      title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+      content: z.string().max(500, "最大500文字です"),
+      priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+        message: "優先度を選択してください",
+      }),
+      deadlineDate: z
+        .string()
+        .min(1, "期限日は必須です")
+        .transform((v) => new Date(v))
+        .refine(
+          (d) => !Number.isNaN(d.getTime()),
+          "期限日を正しく入力してください",
+        )
+        .refine(
+          (d) => d >= startOfDay(new Date()),
+          "現在以降の日を入力してください",
+        ),
+      deadlineTime: z.preprocess(
+        (v) => (v === "" ? undefined : v),
+        z
+          .string()
+          .regex(
+            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+            "時刻の形式が正しくありません",
+          )
+          .optional(),
+      ),
+    })
+    .superRefine((data, ctx) => {
+      const [y, m, d] = format(data.deadlineDate, "yyyy-MM-dd")
+        .split("-")
+        .map(Number);
+
+      // 日付はローカル 00:00 をベースに作る（UTC事故回避）
+      const deadline = new Date(y, m - 1, d, 0, 0, 0, 0);
+
+      if (data.deadlineTime) {
+        const [hh, mm] = data.deadlineTime.split(":").map(Number);
+        deadline.setHours(hh, mm, 0, 0);
+      } else {
+        // 時刻なし＝終日扱い（好きに決めてOK）
+        deadline.setHours(23, 59, 59, 0);
+      }
+
+      // 「現在以降」判定（ミリ秒比較）
+      const now = new Date();
+      if (deadline.getTime() < now.getTime()) {
+        // 👇 日付にも
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["deadlineDate"],
+          message: "期限は現在以降を指定してください。",
+        });
+
+        // 👇 時刻にも
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["deadlineTime"],
+          message: "期限は現在以降を指定してください。",
+        });
+      }
+    });
 
   type TodoInput = z.infer<typeof clientSchema>;
   type ClientErrors = Partial<Record<keyof TodoInput, string[]>>;
@@ -65,7 +121,8 @@ export default function Form({ todo }: { todo: TodoDTO }) {
       title: formData.get("title"),
       content: formData.get("content"),
       priority: formData.get("priority"),
-      deadline: formData.get("deadline"),
+      deadlineDate: formData.get("deadlineDate"),
+      deadlineTime: formData.get("deadlineTime"),
     });
 
     if (!parsed.success) {
@@ -83,7 +140,8 @@ export default function Form({ todo }: { todo: TodoDTO }) {
   const titleErrors = mergedErrors("title");
   const contentErrors = mergedErrors("content");
   const priorityErrors = mergedErrors("priority");
-  const deadlineErrors = mergedErrors("deadline");
+  const deadlineDateErrors = mergedErrors("deadlineDate");
+  const deadlineTimeErrors = mergedErrors("deadlineTime");
 
   return (
     <Card className="p-5 sm:p-6">
@@ -115,7 +173,7 @@ export default function Form({ todo }: { todo: TodoDTO }) {
             multiline
             margin="normal"
             rows={5}
-            label="*内容"
+            label="内容"
             variant="outlined"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 500 } }}
@@ -154,27 +212,43 @@ export default function Form({ todo }: { todo: TodoDTO }) {
             )}
           </div>
 
-          <div>
+          <div className="grid gap-4 sm:grid-cols-2">
             <LocalizationProvider
               dateAdapter={AdapterDateFns}
               adapterLocale={ja}
             >
-              <DateTimePicker
-                name="deadline"
-                label="*期限"
-                sx={{ width: "100%" }}
-                defaultValue={todo.deadline}
-                slotProps={{
-                  textField: {
-                    error: !!deadlineErrors?.length,
-                  },
-                }}
-                disablePast
-              />
+              <div>
+                <DatePicker
+                  name="deadlineDate"
+                  label="*期限日"
+                  sx={{ width: "100%" }}
+                  defaultValue={todo.deadline}
+                  slotProps={{
+                    textField: {
+                      error: !!deadlineDateErrors?.length,
+                    },
+                  }}
+                  disablePast
+                />
+                {deadlineDateErrors?.length && (
+                  <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+                )}
+              </div>
+              <div>
+                <TimePicker
+                  name="deadlineTime"
+                  label="時刻"
+                  defaultValue={todo.deadline}
+                  slotProps={{
+                    textField: { error: !!deadlineTimeErrors?.length },
+                  }}
+                  disablePast
+                />
+                {deadlineTimeErrors?.length && (
+                  <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+                )}
+              </div>
             </LocalizationProvider>
-            {deadlineErrors?.length && (
-              <FormHelperText error>{deadlineErrors[0]}</FormHelperText>
-            )}
           </div>
         </div>
 

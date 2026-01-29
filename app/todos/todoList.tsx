@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { Status } from "@/generated/prisma/enums";
 import { useToast } from "../components/toastProvider";
+import { format } from "date-fns";
 
 export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   const [openedTodoId, setOpenedTodoId] = useState<number | null>(null);
@@ -85,7 +86,9 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                   <p className="truncate text-sm font-semibold">{todo.title}</p>
                   <PriorityChip priority={todo.priority} />
                   <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    期限: {formatDateTime(new Date(todo.deadline))}
+                    {todo.isAllDay
+                      ? "当日中"
+                      : `期限: ${format(todo.deadline, "HH:mm")}`}
                   </span>
                 </div>
 

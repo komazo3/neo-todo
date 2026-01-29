@@ -48,6 +48,7 @@ export default async function Page({ searchParams }: Props) {
     status: t.status,
     priority: t.priority,
     deadline: t.deadline,
+    isAllDay: t.isAllDay,
   }));
 
   return (

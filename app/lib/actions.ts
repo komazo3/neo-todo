@@ -13,38 +13,88 @@ import {
 } from "./database";
 import "server-only";
 import { auth, signOut } from "@/auth";
+import { startOfDay } from "date-fns";
+import Error from "next/error";
 // Create だけのスキーマに絞る（id/status は不要）
-const CreateTodo = z.object({
-  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
-  content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
-    message: "優先度を選択してください",
-  }),
-  deadline: z
-    .string()
-    .min(1, "期限は必須です")
-    .transform((v) => new Date(v))
-    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください")
-    .refine((d) => d >= new Date(), "現在以降の日時を入力してください"),
-});
+const CreateTodo = z
+  .object({
+    title: z.string().min(1).max(50),
+    content: z.string().max(500),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
+    // MUI DatePickerから "YYYY/MM/DD"形式
+    deadlineDate: z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, "期限日が不正です"),
+    // MUI TimePickerから "HH:mm" or ""（空）
+    deadlineTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "時刻の形式が正しくありません",
+      )
+      .optional()
+      .or(z.literal("")),
+  })
+  .transform((data) => {
+    const [y, m, d] = data.deadlineDate.split("/").map(Number);
+    const base = new Date(y, m - 1, d, 0, 0, 0, 0);
+
+    const time =
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined;
+
+    if (!time) {
+      base.setHours(23, 59, 59, 0);
+      return { ...data, deadline: base, isAllDay: true };
+    }
+
+    const [hh, mm] = time.split(":").map(Number);
+    base.setHours(hh, mm, 0, 0);
+    return { ...data, deadline: base, isAllDay: false };
+  });
 
 export type CreateTodoInput = z.infer<typeof CreateTodo>;
+export type CreateTodoData = z.infer<typeof CreateTodo>; // deadline/isAllDay含む
 
 // 編集画面用
-const UpdateTodo = z.object({
-  id: z.coerce.number().int().positive("IDが不正です"),
-  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
-  content: z.string().min(1, "内容は必須です").max(500, "最大500文字です"),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
-    message: "優先度を選択してください",
-  }),
-  deadline: z
-    .string()
-    .min(1, "期限は必須です")
-    .transform((v) => new Date(v))
-    .refine((d) => !Number.isNaN(d.getTime()), "期限を正しく入力してください")
-    .refine((d) => d >= new Date(), "現在以降の日時を入力してください"),
-});
+const UpdateTodo = z
+  .object({
+    id: z.coerce.number().int().positive("IDが不正です"),
+    title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+    content: z.string().max(500, "最大500文字です"),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+      message: "優先度を選択してください",
+    }),
+    // MUI DatePickerから "YYYY/MM/DD"形式
+    deadlineDate: z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, "期限日が不正です"),
+    // MUI TimePickerから "HH:mm" or ""（空）
+    deadlineTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "時刻の形式が正しくありません",
+      )
+      .optional()
+      .or(z.literal("")),
+  })
+  .transform((data) => {
+    const [y, m, d] = data.deadlineDate.split("/").map(Number);
+    const base = new Date(y, m - 1, d, 0, 0, 0, 0);
+
+    const time =
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined;
+
+    if (!time) {
+      base.setHours(23, 59, 59, 0);
+      return { ...data, deadline: base, isAllDay: true };
+    }
+
+    const [hh, mm] = time.split(":").map(Number);
+    base.setHours(hh, mm, 0, 0);
+    return { ...data, deadline: base, isAllDay: false };
+  });
+
 export type UpdateTodoInput = z.infer<typeof UpdateTodo>;
 
 // チェックボックスのトグル更新用
@@ -82,7 +132,8 @@ export async function createTodoAction(
     title: formData.get("title"),
     content: formData.get("content"),
     priority: formData.get("priority"),
-    deadline: formData.get("deadline"),
+    deadlineDate: formData.get("deadlineDate"),
+    deadlineTime: formData.get("deadlineTime"),
   });
 
   if (!validated.success) {
@@ -101,13 +152,16 @@ export async function createTodoAction(
       content: validated.data.content,
       priority: validated.data.priority,
       deadline: validated.data.deadline,
+      isAllDay: validated.data.isAllDay,
       user: { connect: { id: session.user.id } },
     });
-  } catch {
-    return {
+  } catch (e: any) {
+    const errorResponse = {
       errors: {},
-      message: "Database Error: Failed to Create Todo.",
+      message: e.message,
     };
+    console.error(errorResponse);
+    return errorResponse;
   }
 
   revalidatePath("/todos");
@@ -118,12 +172,14 @@ export async function updateTodoAction(
   formState: UpdateFormState,
   formData: FormData,
 ) {
+  console.log(formData.get("deadlineDate"));
   const validated = UpdateTodo.safeParse({
     id: formData.get("id"),
     title: formData.get("title"),
     content: formData.get("content"),
     priority: formData.get("priority"),
-    deadline: formData.get("deadline"),
+    deadlineDate: formData.get("deadlineDate"),
+    deadlineTime: formData.get("deadlineTime"),
   });
 
   if (!validated.success) {
@@ -139,6 +195,7 @@ export async function updateTodoAction(
       content: validated.data.content,
       priority: validated.data.priority,
       deadline: validated.data.deadline,
+      isAllDay: validated.data.isAllDay,
     });
   } catch {
     return {

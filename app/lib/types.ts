@@ -5,6 +5,7 @@ export type TodoDTO = {
   status: "UNTOUCHED" | "DONE";
   priority: "LOW" | "MEDIUM" | "HIGH";
   deadline: Date;
+  isAllDay: boolean;
 };
 
 export type UserDTO = {
