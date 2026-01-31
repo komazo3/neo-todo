@@ -1,10 +1,12 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { authConfig } from "./auth.config";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./app/lib/prisma";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { sendVerificationRequest } from "./app/lib/mail";
+import { verifyPassword } from "./app/lib/password";
 
 function defaultNameFromEmail(email: string) {
   const local = email.split("@")[0] ?? "";
@@ -27,6 +29,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM,
       sendVerificationRequest,
+    }),
+    Credentials({
+      name: "メールアドレスとパスワード",
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+        password: { label: "パスワード", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password);
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+        if (!user?.password) return null;
+        const ok = await verifyPassword(password, user.password);
+        if (!ok) return null;
+        if (!user.emailVerified) return null;
+        return {
+          id: user.id,
+          email: user.email ?? undefined,
+          name: user.name ?? undefined,
+          image: user.image ?? undefined,
+        };
+      },
     }),
   ],
   events: {

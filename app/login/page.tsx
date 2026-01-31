@@ -1,6 +1,7 @@
 import { auth, signIn } from "@/auth";
 import "./login.css";
 import {
+  Alert,
   Button,
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
   Divider,
   TextField,
 } from "@mui/material";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -15,16 +17,75 @@ export const metadata = {
   description: "Todo Today にログインします。",
 };
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ verified?: string; error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await auth();
   if (session) redirect("/todos");
 
+  const sp = await searchParams;
+  const showVerifiedMessage = sp?.verified === "1";
+  const showCredentialsError = sp?.error === "credentials";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <Card >
+      <Card className="w-full max-w-md">
         <CardHeader title="ログイン" />
         <CardContent>
+          {showVerifiedMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              メールアドレスを認証しました。ログインしてください。
+            </Alert>
+          )}
+          {showCredentialsError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Account not found or password is incorrect.
+            </Alert>
+          )}
           <div className="flex flex-col gap-5">
+            {/* メール + パスワード */}
+            <form
+              action={async (formData: FormData) => {
+                "use server";
+                const email = String(formData.get("email") ?? "").trim().toLowerCase();
+                const password = String(formData.get("password") ?? "");
+                if (!email || !password) return;
+                try {
+                  await signIn("credentials", {
+                    email,
+                    password,
+                    redirectTo: "/todos",
+                  });
+                } catch {
+                  redirect("/login?error=credentials");
+                }
+              }}
+            >
+              <div className="flex flex-col gap-5">
+                <TextField
+                  fullWidth
+                  type="email"
+                  name="email"
+                  label="メールアドレス"
+                  required
+                  autoComplete="email"
+                />
+                <TextField
+                  fullWidth
+                  type="password"
+                  name="password"
+                  label="パスワード"
+                  required
+                  autoComplete="current-password"
+                />
+                <Button type="submit" variant="contained" fullWidth>
+                  メールアドレスでログイン
+                </Button>
+              </div>
+            </form>
+            <Divider>または</Divider>
             {/* Google Login Button */}
             <form
               action={async () => {
@@ -84,13 +145,21 @@ export default async function LoginPage() {
                   fullWidth
                   type="email"
                   name="email"
-                  label="メールアドレス"
+                  label="メールアドレス（マジックリンク用）"
                   required
                 />
-                <Button type="submit" variant="outlined">メールアドレスでログイン</Button>
+                <Button type="submit" variant="outlined" fullWidth>
+                  メールでログインリンクを受け取る
+                </Button>
               </div>
             </form>
           </div>
+          <p className="mt-4 text-center text-sm text-slate-600">
+            アカウントをお持ちでない方は
+            <Link href="/signup" className="ml-1 text-slate-900 underline">
+              アカウント作成
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </main>
