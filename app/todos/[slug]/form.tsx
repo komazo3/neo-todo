@@ -23,11 +23,38 @@ import {
   TimePicker,
 } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 
-export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
+/** JST で表示するための期限日・時刻（サーバーから渡す） */
+type EditTodoFormProps = {
+  todo: TodoDTO;
+  deadlineDateJst?: string;
+  deadlineTimeJst?: string;
+};
+
+function parseJstToLocalDate(dateStr: string, timeStr: string): Date {
+  const [y, m, d] = dateStr.split("/").map(Number);
+  const [hh, mm] = timeStr.split(":").map(Number);
+  return new Date(y, m - 1, d, hh, mm, 0, 0);
+}
+
+function initialDeadlineValue(
+  deadlineDateJst: string | undefined,
+  deadlineTimeJst: string | undefined,
+  todo: TodoDTO,
+): Date {
+  if (deadlineDateJst && deadlineTimeJst) {
+    const d = parseJstToLocalDate(deadlineDateJst, deadlineTimeJst);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  const fallback = typeof todo.deadline === "string" ? new Date(todo.deadline) : todo.deadline;
+  return fallback && !Number.isNaN(fallback.getTime()) ? fallback : new Date();
+}
+
+export default function EditTodoForm({ todo, deadlineDateJst, deadlineTimeJst }: EditTodoFormProps) {
   const toast = useToast();
   const initialState: UpdateFormState = { message: "", errors: {} };
   const [serverState, formAction] = useActionState(
@@ -36,10 +63,23 @@ export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
   );
   const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
 
+  const [deadlineValue, setDeadlineValue] = useState<Date>(() =>
+    initialDeadlineValue(deadlineDateJst, deadlineTimeJst, todo),
+  );
+
   const mergedErrors = (field: keyof TodoFormInput) =>
     clientErrors[field]?.length
       ? clientErrors[field]
       : (serverState.errors?.[field] as string[] | undefined);
+
+  const deadlineDateFormValue = useMemo(
+    () => format(deadlineValue, "yyyy/MM/dd"),
+    [deadlineValue],
+  );
+  const deadlineTimeFormValue = useMemo(
+    () => format(deadlineValue, "HH:mm"),
+    [deadlineValue],
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -145,16 +185,32 @@ export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <input type="hidden" name="deadlineDate" value={deadlineDateFormValue} />
+            <input type="hidden" name="deadlineTime" value={deadlineTimeFormValue} />
             <LocalizationProvider
               dateAdapter={AdapterDateFns}
               adapterLocale={ja}
             >
               <div>
                 <DatePicker
-                  name="deadlineDate"
                   label="*期限日"
                   sx={{ width: "100%" }}
-                  defaultValue={todo.deadline}
+                  value={deadlineValue}
+                  onChange={(v) =>
+                    v &&
+                    setDeadlineValue(
+                      (prev) =>
+                        new Date(
+                          v.getFullYear(),
+                          v.getMonth(),
+                          v.getDate(),
+                          prev.getHours(),
+                          prev.getMinutes(),
+                          prev.getSeconds(),
+                          prev.getMilliseconds(),
+                        ),
+                    )
+                  }
                   slotProps={{
                     textField: {
                       error: !!deadlineDateErrors?.length,
@@ -168,9 +224,23 @@ export default function EditTodoForm({ todo }: { todo: TodoDTO }) {
               </div>
               <div>
                 <TimePicker
-                  name="deadlineTime"
                   label="時刻"
-                  defaultValue={todo.deadline}
+                  value={deadlineValue}
+                  onChange={(v) =>
+                    v &&
+                    setDeadlineValue(
+                      (prev) =>
+                        new Date(
+                          prev.getFullYear(),
+                          prev.getMonth(),
+                          prev.getDate(),
+                          v.getHours(),
+                          v.getMinutes(),
+                          v.getSeconds(),
+                          v.getMilliseconds(),
+                        ),
+                    )
+                  }
                   slotProps={{
                     textField: { error: !!deadlineTimeErrors?.length },
                   }}

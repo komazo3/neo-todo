@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { format } from "date-fns";
+import { formatTimeJst } from "@/app/lib/jst";
 import { useOptimistic, useState, useTransition } from "react";
 import { deleteTodoAction, updateTodoStatusAction } from "@/app/lib/actions";
 import type { TodoDTO } from "@/app/lib/types";
@@ -86,7 +86,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                     <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 whitespace-nowrap">
                       {todo.isAllDay
                         ? "当日中"
-                        : `期限: ${format(todo.deadline, "HH:mm")}`}
+                        : `期限: ${formatTimeJst(todo.deadline)}`}
                     </span>
                   </div>
                 </div>

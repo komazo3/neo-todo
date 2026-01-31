@@ -10,6 +10,7 @@ import {
   updateTodoStatus,
   updateUser,
 } from "./database";
+import { parseJstStringsToUtc } from "./jst";
 import "server-only";
 import { auth, signOut } from "@/auth";
 // Create だけのスキーマに絞る（id/status は不要）
@@ -31,22 +32,12 @@ const CreateTodo = z
       .or(z.literal("")),
   })
   .transform((data) => {
-    const [y, m, d] = data.deadlineDate.split("/").map(Number);
-    const base = new Date(y, m - 1, d, 0, 0, 0, 0);
-
-    const time =
-      data.deadlineTime && data.deadlineTime !== ""
-        ? data.deadlineTime
-        : undefined;
-
-    if (!time) {
-      base.setHours(23, 59, 59, 0);
-      return { ...data, deadline: base, isAllDay: true };
-    }
-
-    const [hh, mm] = time.split(":").map(Number);
-    base.setHours(hh, mm, 0, 0);
-    return { ...data, deadline: base, isAllDay: false };
+    const deadline = parseJstStringsToUtc(
+      data.deadlineDate,
+      data.deadlineTime && data.deadlineTime !== "" ? data.deadlineTime : undefined,
+    );
+    const isAllDay = !data.deadlineTime || data.deadlineTime === "";
+    return { ...data, deadline, isAllDay };
   });
 
 export type CreateTodoInput = z.infer<typeof CreateTodo>;
@@ -74,22 +65,12 @@ const UpdateTodo = z
       .or(z.literal("")),
   })
   .transform((data) => {
-    const [y, m, d] = data.deadlineDate.split("/").map(Number);
-    const base = new Date(y, m - 1, d, 0, 0, 0, 0);
-
-    const time =
-      data.deadlineTime && data.deadlineTime !== ""
-        ? data.deadlineTime
-        : undefined;
-
-    if (!time) {
-      base.setHours(23, 59, 59, 0);
-      return { ...data, deadline: base, isAllDay: true };
-    }
-
-    const [hh, mm] = time.split(":").map(Number);
-    base.setHours(hh, mm, 0, 0);
-    return { ...data, deadline: base, isAllDay: false };
+    const deadline = parseJstStringsToUtc(
+      data.deadlineDate,
+      data.deadlineTime && data.deadlineTime !== "" ? data.deadlineTime : undefined,
+    );
+    const isAllDay = !data.deadlineTime || data.deadlineTime === "";
+    return { ...data, deadline, isAllDay };
   });
 
 export type UpdateTodoInput = z.infer<typeof UpdateTodo>;

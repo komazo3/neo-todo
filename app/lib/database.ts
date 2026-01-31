@@ -1,4 +1,5 @@
 import { Prisma, Status, Todo } from "@/generated/prisma/client";
+import { jstToUtc } from "./jst";
 import { prisma } from "./prisma";
 import {
   TodoCreateInput,
@@ -35,16 +36,19 @@ export async function listTodos(
     status: status ? status : undefined,
   };
 
-  if (targetDate) {
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+  if (targetDate && !Number.isNaN(targetDate.getTime())) {
+    const y = targetDate.getUTCFullYear();
+    const m = targetDate.getUTCMonth() + 1;
+    const d = targetDate.getUTCDate();
+    const startOfDayJst = jstToUtc(y, m, d, 0, 0, 0);
+    const endOfDayJst = jstToUtc(y, m, d, 23, 59, 59);
 
-    where.deadline = {
-      gte: startOfDay,
-      lte: endOfDay,
-    };
+    if (!Number.isNaN(startOfDayJst.getTime()) && !Number.isNaN(endOfDayJst.getTime())) {
+      where.deadline = {
+        gte: startOfDayJst,
+        lte: endOfDayJst,
+      };
+    }
   }
 
   return prisma.todo.findMany({

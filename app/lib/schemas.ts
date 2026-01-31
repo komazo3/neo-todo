@@ -1,5 +1,6 @@
 import { format, startOfDay } from "date-fns";
 import { z } from "zod";
+import { parseJstStringsToUtc } from "./jst";
 
 /** TODO作成・編集フォーム用のクライアント側バリデーションスキーマ */
 export const todoFormSchema = z
@@ -33,21 +34,10 @@ export const todoFormSchema = z
     ),
   })
   .superRefine((data, ctx) => {
-    const [y, m, d] = format(
-      data.deadlineDate as Date,
-      "yyyy-MM-dd",
-    ).split("-").map(Number);
-    const deadline = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const dateStr = format(data.deadlineDate as Date, "yyyy/MM/dd");
+    const deadlineUtc = parseJstStringsToUtc(dateStr, data.deadlineTime);
 
-    if (data.deadlineTime) {
-      const [hh, mm] = data.deadlineTime.split(":").map(Number);
-      deadline.setHours(hh, mm, 0, 0);
-    } else {
-      deadline.setHours(23, 59, 59, 0);
-    }
-
-    const now = new Date();
-    if (deadline.getTime() < now.getTime()) {
+    if (deadlineUtc.getTime() < Date.now()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["deadlineDate"],

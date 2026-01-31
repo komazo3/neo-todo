@@ -1,6 +1,7 @@
 import SubHeader from "@/app/components/subHeader";
 import Form from "./form";
 import { getTodo } from "@/app/lib/database";
+import { utcToJstDateForPicker } from "@/app/lib/jst";
 import type { TodoDTO } from "@/app/lib/types";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -25,6 +26,7 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
   const targetTodo = await getTodo(todoId, session.user.id);
   if (!targetTodo) notFound();
 
+  const jstDisplay = utcToJstDateForPicker(targetTodo.deadline);
   const dto: TodoDTO = {
     id: targetTodo.id,
     title: targetTodo.title,
@@ -38,7 +40,7 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
   return (
     <>
       <SubHeader title="TODOを編集" />
-      <Form todo={dto} />
+      <Form todo={dto} deadlineDateJst={jstDisplay.dateString} deadlineTimeJst={jstDisplay.timeString} />
     </>
   );
 }
