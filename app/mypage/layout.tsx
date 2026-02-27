@@ -6,8 +6,6 @@ export default async function MyPageLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session) redirect("/login");
   return (
     <section>
       <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>

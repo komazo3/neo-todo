@@ -5,28 +5,73 @@ import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
 import { hashPassword } from "./password";
 import { sendSignupVerificationEmail } from "./mail";
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
 const SIGNUP_VERIFICATION_EXPIRES_HOURS = 24;
 
-const SignupSchema = z.object({
-  email: z.string().email("有効なメールアドレスを入力してください").max(255),
-  password: z
-    .string()
-    .min(8, "パスワードは8文字以上で入力してください")
-    .max(72, "パスワードは72文字以内で入力してください")
-    .regex(
-      /^(?=.*[a-zA-Z])(?=.*\d)/,
-      "パスワードは英字と数字の両方を含めてください",
-    ),
-  passwordConfirm: z.string(),
-}).refine((data) => data.password === data.passwordConfirm, {
-  message: "パスワードが一致しません",
-  path: ["passwordConfirm"],
-});
+const SignupSchema = z
+  .object({
+    email: z.string().email("有効なメールアドレスを入力してください").max(255),
+    password: z
+      .string()
+      .min(8, "パスワードは8文字以上で入力してください")
+      .max(72, "パスワードは72文字以内で入力してください")
+      .regex(
+        /^(?=.*[a-zA-Z])(?=.*\d)/,
+        "パスワードは英字と数字の両方を含めてください",
+      ),
+    passwordConfirm: z.string(),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "パスワードが一致しません",
+    path: ["passwordConfirm"],
+  });
 
 export type SignupFormState = {
   errors?: Partial<Record<keyof z.infer<typeof SignupSchema>, string[]>>;
   message?: string;
 };
+
+type AuthenticateActionState = {
+  success: boolean;
+  message: string;
+};
+
+export async function authenticate(
+  prevState: AuthenticateActionState | undefined,
+  formData: FormData,
+): Promise<AuthenticateActionState> {
+  try {
+    const res = await signIn("credentials", {
+      email: String(formData.get("email")),
+      password: String(formData.get("password")),
+      redirect: false,
+      callbackUrl: "/todos",
+    });
+
+    if (res.error) {
+      return {
+        success: false,
+        message: "メールアドレスまたはパスワードが違います。",
+      };
+    }
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return {
+            success: false,
+            message: "メールアドレスまたはパスワードが違います。",
+          };
+      }
+    }
+    return {
+      success: false,
+      message: "ログイン時にエラーが発生しました。",
+    };
+  }
+  redirect("/todos");
+}
 
 export async function signupAction(
   _prevState: SignupFormState,
@@ -56,7 +101,9 @@ export async function signupAction(
   }
 
   const hashed = await hashPassword(password);
-  const expires = new Date(Date.now() + SIGNUP_VERIFICATION_EXPIRES_HOURS * 60 * 60 * 1000);
+  const expires = new Date(
+    Date.now() + SIGNUP_VERIFICATION_EXPIRES_HOURS * 60 * 60 * 1000,
+  );
   const token = crypto.randomUUID();
 
   const nameFromEmail = (e: string) => {
@@ -81,14 +128,19 @@ export async function signupAction(
     });
   });
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL ?? "http://localhost:3000";
+  const baseUrl =
+    process.env.AUTH_URL ??
+    process.env.NEXTAUTH_URL ??
+    process.env.VERCEL_URL ??
+    "http://localhost:3000";
   const verifyUrl = `${baseUrl}/login/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
   try {
     await sendSignupVerificationEmail(email, verifyUrl);
   } catch (e) {
     return {
-      message: e instanceof Error ? e.message : "認証メールの送信に失敗しました。",
+      message:
+        e instanceof Error ? e.message : "認証メールの送信に失敗しました。",
     };
   }
 
@@ -112,7 +164,11 @@ export async function verifyEmailAction(
   });
 
   if (!vt || vt.expires < new Date()) {
-    return { ok: false, error: "リンクの有効期限が切れています。再度アカウント作成からお試しください。" };
+    return {
+      ok: false,
+      error:
+        "リンクの有効期限が切れています。再度アカウント作成からお試しください。",
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -129,7 +185,9 @@ export async function verifyEmailAction(
       data: { emailVerified: new Date() },
     });
     await tx.verificationToken.delete({
-      where: { identifier_token: { identifier: normalizedEmail, token: token.trim() } },
+      where: {
+        identifier_token: { identifier: normalizedEmail, token: token.trim() },
+      },
     });
   });
 

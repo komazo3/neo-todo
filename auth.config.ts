@@ -1,29 +1,51 @@
 import type { NextAuthConfig } from "next-auth";
+import { prisma } from "./app/lib/prisma";
 
 export const authConfig = {
   pages: {
     signIn: "/login",
     verifyRequest: "/login/verify",
   },
-  // callbacks: {
-  //   authorized({ auth, request: { nextUrl } }) {
-  //     const isLoggedIn = !!auth?.user;
+  callbacks: {
+    // 1. JWTトークンにDBのユーザーIDを書き込む
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    // 2. セッションオブジェクトにトークンのIDを渡す
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const { pathname } = nextUrl;
 
-  //     const isOnTodos = nextUrl.pathname.startsWith("/todos");
-  //     const isOnLogin = nextUrl.pathname === "/login";
+      // ✅ 未ログインでも許可する（公開）
+      const publicPaths = ["/login", "/signup", "/login/verify"];
+      const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
-  //     // 未ログインで /todos に来たらブロック（→ signIn ページへ）
-  //     if (isOnTodos && !isLoggedIn) {
-  //       return false;
-  //     }
+      // ✅ ログイン必須（保護）
+      const protectedPaths = ["/todos", "/dashboard"];
+      const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
-  //     // ログイン済みで /login に来たら /todos へ
-  //     if (isOnLogin && isLoggedIn) {
-  //       return Response.redirect(new URL("/todos", nextUrl));
-  //     }
+      // 1) ログイン済みが公開ページに来たら /todos
+      if (isLoggedIn && isPublic) {
+        return Response.redirect(new URL("/todos", nextUrl));
+      }
 
-  //     return true;
-  //   },
-  // },
-  providers: [], // Add providers with an empty array for now
+      // 2) 未ログインが保護ページに来たら /login
+      if (!isLoggedIn && isProtected) {
+        return Response.redirect(new URL("/login", nextUrl));
+      }
+
+      // 3) それ以外は通す
+      return true;
+    },
+  },
+  providers: [],
 } satisfies NextAuthConfig;

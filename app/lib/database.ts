@@ -43,7 +43,10 @@ export async function listTodos(
     const startOfDayJst = jstToUtc(y, m, d, 0, 0, 0);
     const endOfDayJst = jstToUtc(y, m, d, 23, 59, 59);
 
-    if (!Number.isNaN(startOfDayJst.getTime()) && !Number.isNaN(endOfDayJst.getTime())) {
+    if (
+      !Number.isNaN(startOfDayJst.getTime()) &&
+      !Number.isNaN(endOfDayJst.getTime())
+    ) {
       where.deadline = {
         gte: startOfDayJst,
         lte: endOfDayJst,
@@ -103,6 +106,12 @@ export async function deleteTodo(id: number, userId: string) {
 export async function getUser(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
+  });
+}
+
+export async function getUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: { email },
   });
 }
 

@@ -18,7 +18,9 @@ type EditTodoPageProps = {
 export default async function EditTodoPage({ params }: EditTodoPageProps) {
   const { slug } = await params;
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
 
   const todoId = Number.parseInt(slug, 10);
   if (Number.isNaN(todoId)) notFound();
@@ -40,7 +42,11 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
   return (
     <>
       <SubHeader title="TODOを編集" />
-      <Form todo={dto} deadlineDateJst={jstDisplay.dateString} deadlineTimeJst={jstDisplay.timeString} />
+      <Form
+        todo={dto}
+        deadlineDateJst={jstDisplay.dateString}
+        deadlineTimeJst={jstDisplay.timeString}
+      />
     </>
   );
 }

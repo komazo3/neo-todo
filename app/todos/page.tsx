@@ -6,6 +6,7 @@ import { listTodos } from "@/app/lib/database";
 import { getTodayJst } from "@/app/lib/jst";
 import type { TodoDTO } from "@/app/lib/types";
 import TodosClient from "./todosClient";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,10 @@ type TodosPageProps = {
 
 export default async function TodosPage({ searchParams }: TodosPageProps) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  console.log(session);
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
 
   const sp = await searchParams;
 

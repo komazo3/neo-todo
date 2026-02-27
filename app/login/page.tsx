@@ -1,4 +1,5 @@
 import { auth, signIn } from "@/auth";
+import { AuthError } from "next-auth";
 import "./login.css";
 import {
   Alert,
@@ -11,6 +12,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import CredentialForm from "./credentialForm";
 
 export const metadata = {
   title: "ログイン | Todo Today",
@@ -22,9 +24,6 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const session = await auth();
-  if (session) redirect("/todos");
-
   const sp = await searchParams;
   const showVerifiedMessage = sp?.verified === "1";
   const showCredentialsError = sp?.error === "credentials";
@@ -46,45 +45,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           )}
           <div className="flex flex-col gap-5">
             {/* メール + パスワード */}
-            <form
-              action={async (formData: FormData) => {
-                "use server";
-                const email = String(formData.get("email") ?? "").trim().toLowerCase();
-                const password = String(formData.get("password") ?? "");
-                if (!email || !password) return;
-                try {
-                  await signIn("credentials", {
-                    email,
-                    password,
-                    redirectTo: "/todos",
-                  });
-                } catch {
-                  redirect("/login?error=credentials");
-                }
-              }}
-            >
-              <div className="flex flex-col gap-5">
-                <TextField
-                  fullWidth
-                  type="email"
-                  name="email"
-                  label="メールアドレス"
-                  required
-                  autoComplete="email"
-                />
-                <TextField
-                  fullWidth
-                  type="password"
-                  name="password"
-                  label="パスワード"
-                  required
-                  autoComplete="current-password"
-                />
-                <Button type="submit" variant="contained" fullWidth>
-                  メールアドレスでログイン
-                </Button>
-              </div>
-            </form>
+            <CredentialForm></CredentialForm>
             <Divider>または</Divider>
             {/* Google Login Button */}
             <form
@@ -128,7 +89,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   </div>
                 }
               >
-                <span className="whitespace-nowrap">Googleアカウントでログイン</span>
+                <span className="whitespace-nowrap">
+                  Googleアカウントでログイン
+                </span>
               </Button>
             </form>
             <Divider>または</Divider>

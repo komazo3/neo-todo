@@ -8,9 +8,6 @@ export const metadata = {
 };
 
 export default async function SignupPage() {
-  const session = await auth();
-  if (session) redirect("/todos");
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <SignupForm />
