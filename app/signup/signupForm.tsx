@@ -11,7 +11,16 @@ import {
   TextField,
 } from "@mui/material";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import {
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+} from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 const initialState: SignupFormState = {};
 
@@ -20,6 +29,25 @@ export default function SignupForm() {
     signupAction,
     initialState,
   );
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleClickShowPasswordConfirm = () =>
+    setShowPasswordConfirm((show) => !show);
+
+  const handleMouseDownPassword = (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+  };
+
+  const handleMouseUpPassword = (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -34,6 +62,12 @@ export default function SignupForm() {
               label="メールアドレス"
               required
               autoComplete="email"
+              sx={{
+                "& input:-webkit-autofill": {
+                  WebkitBoxShadow: "0 0 0 1000px white inset",
+                  WebkitTextFillColor: "#000",
+                },
+              }}
               defaultValue={state.fields?.email}
               error={!!state.errors?.email?.length}
             />
@@ -44,22 +78,39 @@ export default function SignupForm() {
             ))}
           </div>
           <div>
-            <TextField
-              fullWidth
-              type="password"
-              name="password"
-              label="パスワード"
-              required
-              autoComplete="new-password"
-              error={!!state.errors?.password?.length}
-              helperText={
-                <p>
-                  ・8文字以上
-                  <br />
-                  ・英字と数字を含む
-                </p>
-              }
-            />
+            <FormControl fullWidth variant="outlined" required>
+              <InputLabel htmlFor="password">パスワード</InputLabel>
+              <OutlinedInput
+                id="password"
+                name="password"
+                autoComplete="new-password"
+                type={showPassword ? "text" : "password"}
+                sx={{
+                  "& input:-webkit-autofill": {
+                    WebkitBoxShadow: "0 0 0 1000px white inset",
+                    WebkitTextFillColor: "#000",
+                  },
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPassword
+                          ? "hide the password"
+                          : "display the password"
+                      }
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      onMouseUp={handleMouseUpPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <Visibility /> : <VisibilityOff />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="パスワード"
+              />
+            </FormControl>
             {state.errors?.password?.map((msg, i) => (
               <FormHelperText key={i} error>
                 {msg}
@@ -67,15 +118,41 @@ export default function SignupForm() {
             ))}
           </div>
           <div>
-            <TextField
-              fullWidth
-              type="password"
-              name="passwordConfirm"
-              label="パスワード（確認用）"
-              required
-              autoComplete="new-password"
-              error={!!state.errors?.passwordConfirm?.length}
-            />
+            <FormControl fullWidth variant="outlined" required>
+              <InputLabel htmlFor="passwordConfirm">
+                パスワード(確認用)
+              </InputLabel>
+              <OutlinedInput
+                id="passwordConfirm"
+                name="passwordConfirm"
+                type={showPasswordConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                sx={{
+                  "& input:-webkit-autofill": {
+                    WebkitBoxShadow: "0 0 0 1000px white inset",
+                    WebkitTextFillColor: "#000",
+                  },
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPasswordConfirm
+                          ? "hide the password"
+                          : "display the password"
+                      }
+                      onClick={handleClickShowPasswordConfirm}
+                      onMouseDown={handleMouseDownPassword}
+                      onMouseUp={handleMouseUpPassword}
+                      edge="end"
+                    >
+                      {showPasswordConfirm ? <Visibility /> : <VisibilityOff />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="パスワード(確認用)"
+              />
+            </FormControl>
             {state.errors?.passwordConfirm?.map((msg, i) => (
               <FormHelperText key={i} error>
                 {msg}
