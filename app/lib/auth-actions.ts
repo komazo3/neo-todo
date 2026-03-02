@@ -30,21 +30,25 @@ const SignupSchema = z
 export type SignupFormState = {
   errors?: Partial<Record<keyof z.infer<typeof SignupSchema>, string[]>>;
   message?: string;
+  fields?: Record<string, any>;
 };
 
 type AuthenticateActionState = {
   success: boolean;
   message: string;
+  fields?: Record<string, any>;
 };
 
 export async function authenticate(
   prevState: AuthenticateActionState | undefined,
   formData: FormData,
 ): Promise<AuthenticateActionState> {
+  const email = String(formData.get("email"));
+  const password = String(formData.get("password"));
   try {
     const res = await signIn("credentials", {
-      email: String(formData.get("email")),
-      password: String(formData.get("password")),
+      email: email,
+      password: password,
       redirect: false,
       callbackUrl: "/todos",
     });
@@ -53,6 +57,7 @@ export async function authenticate(
       return {
         success: false,
         message: "メールアドレスまたはパスワードが違います。",
+        fields: { email, password },
       };
     }
   } catch (error) {
@@ -62,6 +67,7 @@ export async function authenticate(
           return {
             success: false,
             message: "メールアドレスまたはパスワードが違います。",
+            fields: { email, password },
           };
       }
     }
@@ -77,30 +83,38 @@ export async function signupAction(
   _prevState: SignupFormState,
   formData: FormData,
 ): Promise<SignupFormState> {
+  const email = formData.get("email")?.toString()?.trim().toLowerCase();
+  const password = formData.get("password")?.toString();
+  const passwordConfirm = formData.get("passwordConfirm")?.toString();
   const parsed = SignupSchema.safeParse({
-    email: formData.get("email")?.toString()?.trim().toLowerCase(),
-    password: formData.get("password")?.toString() ?? "",
-    passwordConfirm: formData.get("passwordConfirm")?.toString() ?? "",
+    email: email,
+    password: password ?? "",
+    passwordConfirm: passwordConfirm ?? "",
   });
 
   if (!parsed.success) {
     return {
       errors: parsed.error.flatten().fieldErrors as SignupFormState["errors"],
       message: "入力内容を確認してください。",
+      fields: { email },
     };
   }
 
-  const { email, password } = parsed.data;
+  const parsedEmail = parsed.data.email;
+  const parsedPassword = parsed.data.password;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { email: parsedEmail },
+  });
   if (existing) {
     return {
       errors: { email: ["このメールアドレスは既に登録されています。"] },
       message: "入力内容を確認してください。",
+      fields: { email: parsedEmail },
     };
   }
 
-  const hashed = await hashPassword(password);
+  const hashed = await hashPassword(parsedPassword);
   const expires = new Date(
     Date.now() + SIGNUP_VERIFICATION_EXPIRES_HOURS * 60 * 60 * 1000,
   );
@@ -116,15 +130,17 @@ export async function signupAction(
   await prisma.$transaction(async (tx) => {
     await tx.user.create({
       data: {
-        email,
-        name: nameFromEmail(email),
+        email: parsedEmail,
+        name: nameFromEmail(parsedEmail),
         password: hashed,
         emailVerified: null,
       },
     });
-    await tx.verificationToken.deleteMany({ where: { identifier: email } });
+    await tx.verificationToken.deleteMany({
+      where: { identifier: parsedEmail },
+    });
     await tx.verificationToken.create({
-      data: { identifier: email, token, expires },
+      data: { identifier: parsedEmail, token, expires },
     });
   });
 
@@ -133,10 +149,10 @@ export async function signupAction(
     process.env.NEXTAUTH_URL ??
     process.env.VERCEL_URL ??
     "http://localhost:3000";
-  const verifyUrl = `${baseUrl}/login/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+  const verifyUrl = `${baseUrl}/login/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(parsedEmail)}`;
 
   try {
-    await sendSignupVerificationEmail(email, verifyUrl);
+    await sendSignupVerificationEmail(parsedEmail, verifyUrl);
   } catch (e) {
     return {
       message:
@@ -144,7 +160,7 @@ export async function signupAction(
     };
   }
 
-  redirect("/signup/sent?email=" + encodeURIComponent(email));
+  redirect("/signup/sent?email=" + encodeURIComponent(parsedEmail));
 }
 
 export async function verifyEmailAction(

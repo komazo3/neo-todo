@@ -7,6 +7,7 @@ export default function CredentialForm() {
   const [state, formAction, isPending] = useActionState(authenticate, {
     success: false,
     message: "",
+    fields: {},
   });
   return (
     <form action={formAction}>
@@ -18,6 +19,7 @@ export default function CredentialForm() {
           label="メールアドレス"
           required
           autoComplete="email"
+          defaultValue={state.fields?.email}
         />
         <TextField
           fullWidth
@@ -26,8 +28,14 @@ export default function CredentialForm() {
           label="パスワード"
           required
           autoComplete="current-password"
+          defaultValue={state.fields?.password}
         />
-        <Button type="submit" variant="contained" fullWidth>
+        <Button
+          type="submit"
+          variant="contained"
+          fullWidth
+          disabled={isPending}
+        >
           メールアドレスでログイン
         </Button>
       </div>
