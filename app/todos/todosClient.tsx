@@ -88,7 +88,7 @@ export default function TodosClient({
         <SortSelect current={sortFilter} onChange={setSortFilter} />
         <AddButton />
       </section>
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-y-scroll max-h-[50vh] md:max-h-[65vh]">
         {filteredSorted.length === 0 ? (
           <p className="p-4">該当するTODOがありません。</p>
         ) : (

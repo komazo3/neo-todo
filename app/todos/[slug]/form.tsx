@@ -50,13 +50,22 @@ function initialDeadlineValue(
     const d = parseJstToLocalDate(deadlineDateJst, deadlineTimeJst);
     if (!Number.isNaN(d.getTime())) return d;
   }
-  const fallback = typeof todo.deadline === "string" ? new Date(todo.deadline) : todo.deadline;
+  const fallback =
+    typeof todo.deadline === "string" ? new Date(todo.deadline) : todo.deadline;
   return fallback && !Number.isNaN(fallback.getTime()) ? fallback : new Date();
 }
 
-export default function EditTodoForm({ todo, deadlineDateJst, deadlineTimeJst }: EditTodoFormProps) {
+export default function EditTodoForm({
+  todo,
+  deadlineDateJst,
+  deadlineTimeJst,
+}: EditTodoFormProps) {
   const toast = useToast();
-  const initialState: UpdateFormState = { message: "", errors: {} };
+  const initialState: UpdateFormState = {
+    message: "",
+    errors: {},
+    success: false,
+  };
   const [serverState, formAction] = useActionState(
     updateTodoAction,
     initialState,
@@ -144,7 +153,7 @@ export default function EditTodoForm({ todo, deadlineDateJst, deadlineTimeJst }:
             name="content"
             multiline
             margin="normal"
-            rows={10}
+            rows={9}
             label="内容"
             variant="outlined"
             fullWidth
@@ -185,8 +194,16 @@ export default function EditTodoForm({ todo, deadlineDateJst, deadlineTimeJst }:
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <input type="hidden" name="deadlineDate" value={deadlineDateFormValue} />
-            <input type="hidden" name="deadlineTime" value={deadlineTimeFormValue} />
+            <input
+              type="hidden"
+              name="deadlineDate"
+              value={deadlineDateFormValue}
+            />
+            <input
+              type="hidden"
+              name="deadlineTime"
+              value={deadlineTimeFormValue}
+            />
             <LocalizationProvider
               dateAdapter={AdapterDateFns}
               adapterLocale={ja}

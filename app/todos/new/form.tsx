@@ -16,7 +16,11 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import {
+  DatePicker,
+  LocalizationProvider,
+  TimePicker,
+} from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
@@ -97,7 +101,7 @@ export default function NewTodoForm() {
             name="content"
             multiline
             margin="normal"
-            rows={10}
+            rows={9}
             label="内容"
             variant="outlined"
             fullWidth

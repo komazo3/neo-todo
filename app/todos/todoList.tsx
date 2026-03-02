@@ -71,7 +71,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
       <ul className="divide-y divide-slate-200">
         {optimisticTodos.map((todo) => (
           <li key={todo.id} className="px-1 py-4 sm:px-6">
-            <div className="flex justify-around items-start gap-2">
+            <div className="flex justify-around items-start gap-2 sm:gap-4">
               <Checkbox
                 aria-label="完了切り替え"
                 checked={todo.status === Status.DONE}
@@ -79,9 +79,11 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
               />
 
               <div className="min-w-0 flex-1">
-                <div className="flex flex-col items-center gap-2 sm:flex-row">
-                  <p className="whitespace-pre-wrap text-sm font-semibold">{todo.title}</p>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col items-center gap-4 mb-4">
+                  <span className="text-sm font-semibold text-left truncate w-full border-b border-b-gray-300 pb-2">
+                    {todo.title}
+                  </span>
+                  <div className="flex gap-2 text-left w-full flex-row items-start">
                     <PriorityChip priority={todo.priority} />
                     <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 whitespace-nowrap">
                       {todo.isAllDay
@@ -97,10 +99,18 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
               </div>
 
               <div className="flex flex-col shrink-0 items-center gap-2 sm:flex-row">
-                <Button component={Link} href={`/todos/${todo.id}`} variant="outlined">
+                <Button
+                  component={Link}
+                  href={`/todos/${todo.id}`}
+                  variant="outlined"
+                >
                   編集
                 </Button>
-                <Button color="error" onClick={() => setOpenedTodoId(todo.id)} variant="outlined">
+                <Button
+                  color="error"
+                  onClick={() => setOpenedTodoId(todo.id)}
+                  variant="outlined"
+                >
                   削除
                 </Button>
               </div>
@@ -120,7 +130,11 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                 >
                   OK
                 </Button>
-                <Button onClick={handleCloseDialog} autoFocus variant="outlined">
+                <Button
+                  onClick={handleCloseDialog}
+                  autoFocus
+                  variant="outlined"
+                >
                   キャンセル
                 </Button>
               </DialogActions>

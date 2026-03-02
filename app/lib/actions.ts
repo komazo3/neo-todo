@@ -156,10 +156,10 @@ export async function createTodoAction(
 export async function updateTodoAction(
   formState: UpdateFormState,
   formData: FormData,
-) {
+): Promise<UpdateFormState> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { errors: {}, message: "ログインが必要です。" };
+    return { errors: {}, message: "ログインが必要です。", success: false };
   }
 
   const validated = UpdateTodo.safeParse({
@@ -175,6 +175,7 @@ export async function updateTodoAction(
     return {
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
+      success: false,
     };
   }
 
@@ -190,6 +191,7 @@ export async function updateTodoAction(
     return {
       errors: {},
       message: "Database Error: Failed to Update Todo.",
+      success: false,
     };
   }
 
