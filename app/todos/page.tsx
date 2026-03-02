@@ -21,7 +21,6 @@ type TodosPageProps = {
 
 export default async function TodosPage({ searchParams }: TodosPageProps) {
   const session = await auth();
-  console.log(session);
   if (!session?.user?.id) {
     redirect("/login");
   }
