@@ -8,9 +8,14 @@ export const authConfig = {
   },
   callbacks: {
     // 1. JWTトークンにDBのユーザーIDを書き込む
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
+      }
+
+      if (trigger === "update" && session?.name) {
+        token.name = session.name;
       }
       return token;
     },
@@ -18,6 +23,7 @@ export const authConfig = {
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        session.user.name = token.name;
       }
       return session;
     },
