@@ -200,6 +200,17 @@ export async function verifyEmailAction(
       where: { id: user.id },
       data: { emailVerified: new Date() },
     });
+
+    // Credentialsのアカウントレコードを作成
+    await tx.account.create({
+      data: {
+        userId: user.id,
+        type: "credentials",
+        provider: "credentials",
+        providerAccountId: user.id, // userIdをそのまま使う
+      },
+    });
+
     await tx.verificationToken.delete({
       where: {
         identifier_token: { identifier: normalizedEmail, token: token.trim() },
