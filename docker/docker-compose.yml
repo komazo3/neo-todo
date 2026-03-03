@@ -1,0 +1,10 @@
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025" # SMTPサーバー（アプリからの送信先）
+      - "8025:8025" # Web UI & API（テスト・確認用）
+    environment:
+      - MP_MAX_MESSAGES=100 # 保存する最大メール数
+    restart: always

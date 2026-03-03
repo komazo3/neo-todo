@@ -111,6 +111,8 @@ export default function SignupForm() {
                 label="パスワード"
               />
             </FormControl>
+            <FormHelperText>8文字以上</FormHelperText>
+            <FormHelperText>英字と数字を含む</FormHelperText>
             {state.errors?.password?.map((msg, i) => (
               <FormHelperText key={i} error>
                 {msg}
