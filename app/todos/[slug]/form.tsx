@@ -62,7 +62,7 @@ export default function EditTodoForm({
     errors: {},
     success: false,
   };
-  const [serverState, formAction] = useActionState(
+  const [serverState, formAction, isPending] = useActionState(
     updateTodoAction,
     initialState,
   );
@@ -164,7 +164,7 @@ export default function EditTodoForm({
           )}
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mb-5 grid gap-4 sm:grid-cols-2">
           <div>
             <TextField
               id="outlined-select-currency"
@@ -263,11 +263,16 @@ export default function EditTodoForm({
         </div>
 
         <CardActions sx={{ justifyContent: "flex-end" }}>
-          <Button component={Link} href="/todos" variant="outlined">
-            キャンセル
-          </Button>
+          <Link href="/todos">
+            <Button variant="outlined">キャンセル</Button>
+          </Link>
 
-          <Button type="submit" color="primary" variant="contained">
+          <Button
+            type="submit"
+            color="primary"
+            variant="contained"
+            disabled={isPending}
+          >
             編集
           </Button>
         </CardActions>

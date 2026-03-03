@@ -99,13 +99,9 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
               </div>
 
               <div className="flex flex-col shrink-0 items-center gap-2 sm:flex-row">
-                <Button
-                  component={Link}
-                  href={`/todos/${todo.id}`}
-                  variant="outlined"
-                >
-                  編集
-                </Button>
+                <Link href={`/todos/${todo.id}`}>
+                  <Button variant="outlined">編集</Button>
+                </Link>
                 <Button
                   color="error"
                   onClick={() => setOpenedTodoId(todo.id)}

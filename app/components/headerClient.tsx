@@ -38,16 +38,13 @@ export default function HeaderClient({ user }: { user: UserLite | null }) {
     <header className="fixed z-10 w-full border-b border-slate-200 bg-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-20">
-          <Button
-            component={Link}
-            href="/todos"
-            aria-label="todos"
-            title="todos"
-          >
-            <span className="text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap">
-              TODO Today
-            </span>
-          </Button>
+          <Link href="/todos">
+            <Button aria-label="todos" title="todos">
+              <span className="text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap">
+                TODO Today
+              </span>
+            </Button>
+          </Link>
           {isLoggedIn && (
             <div className="hidden  md:flex space-x-6">
               <Link
@@ -56,8 +53,8 @@ export default function HeaderClient({ user }: { user: UserLite | null }) {
                 title="todos"
                 className={
                   pathname === "/todos"
-                    ? "text-blue-500 font-bold border-b-blue-400 border-b-2"
-                    : "text-gray-700"
+                    ? "text-blue-500 font-bold border-b-blue-400 border-b-2 hover:text-blue-300"
+                    : "text-gray-700 hover:text-gray-400"
                 }
               >
                 TODO一覧
@@ -68,8 +65,8 @@ export default function HeaderClient({ user }: { user: UserLite | null }) {
                 title="todosNew"
                 className={
                   pathname === "/todos/new"
-                    ? "text-blue-500 font-bold border-b-blue-400 border-b-2"
-                    : "text-gray-700"
+                    ? "text-blue-500 font-bold border-b-blue-400 border-b-2 hover:text-blue-300"
+                    : "text-gray-700 hover:text-gray-400"
                 }
               >
                 TODOを追加

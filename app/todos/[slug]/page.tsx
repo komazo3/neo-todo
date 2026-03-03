@@ -22,6 +22,8 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
     redirect("/login");
   }
 
+  console.log(slug);
+
   if (!slug) notFound();
 
   let targetTodo;

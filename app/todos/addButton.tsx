@@ -5,8 +5,10 @@ import Link from "next/link";
 
 export default function AddButton() {
   return (
-    <Button component={Link} href="/todos/new" variant="contained">
-      ＋ TODOを追加
-    </Button>
+    <Link href="/todos/new">
+      <Button variant="contained" className="w-full">
+        ＋ TODOを追加
+      </Button>
+    </Link>
   );
 }

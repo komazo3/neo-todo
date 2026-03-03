@@ -23,7 +23,7 @@ import { startTransition, useActionState, useState } from "react";
 export default function NewTodoForm() {
   const toast = useToast();
   const initialState: CreateFormState = { message: "", errors: {} };
-  const [serverState, formAction] = useActionState(
+  const [serverState, formAction, isPending] = useActionState(
     createTodoAction,
     initialState,
   );
@@ -109,7 +109,7 @@ export default function NewTodoForm() {
           )}
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mb-5 grid gap-4 sm:grid-cols-2">
           <div>
             <TextField
               id="outlined-select-currency"
@@ -167,11 +167,16 @@ export default function NewTodoForm() {
         </div>
 
         <CardActions sx={{ justifyContent: "flex-end" }}>
-          <Button component={Link} href="/todos" variant="outlined">
-            キャンセル
-          </Button>
+          <Link href="/todos">
+            <Button variant="outlined">キャンセル</Button>
+          </Link>
 
-          <Button type="submit" color="primary" variant="contained">
+          <Button
+            type="submit"
+            color="primary"
+            variant="contained"
+            disabled={isPending}
+          >
             追加
           </Button>
         </CardActions>
