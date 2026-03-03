@@ -16,13 +16,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import {
-  DatePicker,
-  LocalizationProvider,
-  TimePicker,
-} from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { ja } from "date-fns/locale";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import Link from "next/link";
 import { startTransition, useActionState, useState } from "react";
 
@@ -141,39 +135,34 @@ export default function NewTodoForm() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <LocalizationProvider
-              dateAdapter={AdapterDateFns}
-              adapterLocale={ja}
-            >
-              <div>
-                <DatePicker
-                  name="deadlineDate"
-                  label="*期限日"
-                  sx={{ width: "100%" }}
-                  slotProps={{
-                    textField: {
-                      error: !!deadlineDateErrors?.length,
-                    },
-                  }}
-                  disablePast
-                />
-                {deadlineDateErrors?.length && (
-                  <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
-                )}
-              </div>
-              <div>
-                <TimePicker
-                  name="deadlineTime"
-                  label="時刻"
-                  slotProps={{
-                    textField: { error: !!deadlineTimeErrors?.length },
-                  }}
-                />
-                {deadlineTimeErrors?.length && (
-                  <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
-                )}
-              </div>
-            </LocalizationProvider>
+            <div>
+              <DatePicker
+                name="deadlineDate"
+                label="*期限日"
+                sx={{ width: "100%" }}
+                slotProps={{
+                  textField: {
+                    error: !!deadlineDateErrors?.length,
+                  },
+                }}
+                disablePast
+              />
+              {deadlineDateErrors?.length && (
+                <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+              )}
+            </div>
+            <div>
+              <TimePicker
+                name="deadlineTime"
+                label="時刻"
+                slotProps={{
+                  textField: { error: !!deadlineTimeErrors?.length },
+                }}
+              />
+              {deadlineTimeErrors?.length && (
+                <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+              )}
+            </div>
           </div>
         </div>
 

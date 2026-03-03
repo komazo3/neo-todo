@@ -17,11 +17,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import {
-  DatePicker,
-  LocalizationProvider,
-  TimePicker,
-} from "@mui/x-date-pickers";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -204,69 +200,65 @@ export default function EditTodoForm({
               name="deadlineTime"
               value={deadlineTimeFormValue}
             />
-            <LocalizationProvider
-              dateAdapter={AdapterDateFns}
-              adapterLocale={ja}
-            >
-              <div>
-                <DatePicker
-                  label="*期限日"
-                  sx={{ width: "100%" }}
-                  value={deadlineValue}
-                  onChange={(v) =>
-                    v &&
-                    setDeadlineValue(
-                      (prev) =>
-                        new Date(
-                          v.getFullYear(),
-                          v.getMonth(),
-                          v.getDate(),
-                          prev.getHours(),
-                          prev.getMinutes(),
-                          prev.getSeconds(),
-                          prev.getMilliseconds(),
-                        ),
-                    )
-                  }
-                  slotProps={{
-                    textField: {
-                      error: !!deadlineDateErrors?.length,
-                    },
-                  }}
-                  disablePast
-                />
-                {deadlineDateErrors?.length && (
-                  <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
-                )}
-              </div>
-              <div>
-                <TimePicker
-                  label="時刻"
-                  value={deadlineValue}
-                  onChange={(v) =>
-                    v &&
-                    setDeadlineValue(
-                      (prev) =>
-                        new Date(
-                          prev.getFullYear(),
-                          prev.getMonth(),
-                          prev.getDate(),
-                          v.getHours(),
-                          v.getMinutes(),
-                          v.getSeconds(),
-                          v.getMilliseconds(),
-                        ),
-                    )
-                  }
-                  slotProps={{
-                    textField: { error: !!deadlineTimeErrors?.length },
-                  }}
-                />
-                {deadlineTimeErrors?.length && (
-                  <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
-                )}
-              </div>
-            </LocalizationProvider>
+
+            <div>
+              <DatePicker
+                label="*期限日"
+                sx={{ width: "100%" }}
+                value={deadlineValue}
+                onChange={(v) =>
+                  v &&
+                  setDeadlineValue(
+                    (prev) =>
+                      new Date(
+                        v.getFullYear(),
+                        v.getMonth(),
+                        v.getDate(),
+                        prev.getHours(),
+                        prev.getMinutes(),
+                        prev.getSeconds(),
+                        prev.getMilliseconds(),
+                      ),
+                  )
+                }
+                slotProps={{
+                  textField: {
+                    error: !!deadlineDateErrors?.length,
+                  },
+                }}
+                disablePast
+              />
+              {deadlineDateErrors?.length && (
+                <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+              )}
+            </div>
+            <div>
+              <TimePicker
+                label="時刻"
+                value={deadlineValue}
+                onChange={(v) =>
+                  v &&
+                  setDeadlineValue(
+                    (prev) =>
+                      new Date(
+                        prev.getFullYear(),
+                        prev.getMonth(),
+                        prev.getDate(),
+                        v.getHours(),
+                        v.getMinutes(),
+                        v.getSeconds(),
+                        v.getMilliseconds(),
+                      ),
+                  )
+                }
+                slotProps={{
+                  textField: { error: !!deadlineTimeErrors?.length },
+                }}
+              />
+              {deadlineTimeErrors?.length && (
+                <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+              )}
+            </div>
           </div>
         </div>
 
