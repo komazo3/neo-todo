@@ -14,7 +14,7 @@ datasource db {
 }
 
 model Todo {
-  id       Int      @id @default(autoincrement())
+  id       String   @id @default(cuid())
   title    String
   content  String
   status   Status   @default(UNTOUCHED)
@@ -48,6 +48,7 @@ model User {
   email         String          @unique
   emailVerified DateTime?
   image         String?
+  password      String? // メール+パスワード認証用（bcrypt ハッシュ）
   accounts      Account[]
   sessions      Session[]
   // Optional for WebAuthn support

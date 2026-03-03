@@ -8,7 +8,7 @@ export default async function TodosLayout({
 }) {
   return (
     <section>
-      <main className="mx-auto max-w-6xl px-4 pt-8">{children}</main>
+      <div className="mx-auto max-w-6xl px-0 py-0">{children}</div>
     </section>
   );
 }

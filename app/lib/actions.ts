@@ -34,7 +34,9 @@ const CreateTodo = z
   .transform((data) => {
     const deadline = parseJstStringsToUtc(
       data.deadlineDate,
-      data.deadlineTime && data.deadlineTime !== "" ? data.deadlineTime : undefined,
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined,
     );
     const isAllDay = !data.deadlineTime || data.deadlineTime === "";
     return { ...data, deadline, isAllDay };
@@ -46,7 +48,7 @@ export type CreateTodoData = z.infer<typeof CreateTodo>; // deadline/isAllDay含
 // 編集画面用
 const UpdateTodo = z
   .object({
-    id: z.coerce.number().int().positive("IDが不正です"),
+    id: z.coerce.string(),
     title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
     content: z.string().max(500, "最大500文字です"),
     priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
@@ -67,7 +69,9 @@ const UpdateTodo = z
   .transform((data) => {
     const deadline = parseJstStringsToUtc(
       data.deadlineDate,
-      data.deadlineTime && data.deadlineTime !== "" ? data.deadlineTime : undefined,
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined,
     );
     const isAllDay = !data.deadlineTime || data.deadlineTime === "";
     return { ...data, deadline, isAllDay };
@@ -94,6 +98,14 @@ export type CreateFormState = {
 export type UpdateFormState = {
   errors: Partial<Record<keyof UpdateTodoInput, string[]>>;
   message: string;
+  success: boolean;
+  fields?: Record<string, any>;
+};
+export type UpdateUserFormState = {
+  errors: Partial<Record<keyof UserUpdateInput, string[]>>;
+  message: string;
+  success: boolean;
+  fields?: Record<string, any>;
 };
 
 export async function createTodoAction(
@@ -144,10 +156,10 @@ export async function createTodoAction(
 export async function updateTodoAction(
   formState: UpdateFormState,
   formData: FormData,
-) {
+): Promise<UpdateFormState> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { errors: {}, message: "ログインが必要です。" };
+    return { errors: {}, message: "ログインが必要です。", success: false };
   }
 
   const validated = UpdateTodo.safeParse({
@@ -163,6 +175,7 @@ export async function updateTodoAction(
     return {
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
+      success: false,
     };
   }
 
@@ -178,6 +191,7 @@ export async function updateTodoAction(
     return {
       errors: {},
       message: "Database Error: Failed to Update Todo.",
+      success: false,
     };
   }
 
@@ -185,7 +199,7 @@ export async function updateTodoAction(
   redirect("/todos");
 }
 
-export async function updateTodoStatusAction(id: number, done: boolean) {
+export async function updateTodoStatusAction(id: string, done: boolean) {
   const session = await auth();
   if (!session?.user?.id) {
     return { errors: {}, message: "ログインが必要です。" };
@@ -212,7 +226,7 @@ export async function updateTodoStatusAction(id: number, done: boolean) {
   revalidatePath("/todos");
 }
 
-export async function deleteTodoAction(id: number) {
+export async function deleteTodoAction(id: string) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("ログインが必要です。");
@@ -227,12 +241,12 @@ export async function deleteTodoAction(id: number) {
 }
 
 export async function updateUserAction(
-  formState: UpdateFormState | undefined,
+  formState: UpdateUserFormState,
   formData: FormData,
-) {
+): Promise<UpdateUserFormState> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { errors: {}, message: "ログインが必要です。" };
+    return { errors: {}, message: "ログインが必要です。", success: false };
   }
 
   const validated = UpdateUser.safeParse({
@@ -244,11 +258,12 @@ export async function updateUserAction(
     return {
       errors: validated.error.flatten().fieldErrors,
       message: "入力内容を確認してください。",
+      success: false,
     };
   }
 
   if (validated.data.id !== session.user.id) {
-    return { errors: {}, message: "不正なリクエストです。" };
+    return { errors: {}, message: "不正なリクエストです。", success: false };
   }
 
   try {
@@ -259,10 +274,17 @@ export async function updateUserAction(
     return {
       errors: {},
       message: "Database Error: Failed to Update User.",
+      success: false,
     };
   }
 
   revalidatePath("/mypage");
+  return {
+    errors: {},
+    message: "success",
+    success: true,
+    fields: { name: validated.data.name },
+  };
 }
 
 export async function logoutAction() {

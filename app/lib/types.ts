@@ -1,5 +1,5 @@
 export type TodoDTO = {
-  id: number;
+  id: string;
   title: string;
   content: string;
   status: "UNTOUCHED" | "DONE";

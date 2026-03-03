@@ -1,10 +1,14 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { authConfig } from "./auth.config";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./app/lib/prisma";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { sendVerificationRequest } from "./app/lib/mail";
+import { z } from "zod";
+import { getUserByEmail } from "./app/lib/database";
+import bcrypt from "bcryptjs";
 
 function defaultNameFromEmail(email: string) {
   const local = email.split("@")[0] ?? "";
@@ -17,16 +21,41 @@ function defaultNameFromEmail(email: string) {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "database" },
+  session: { strategy: "jwt", maxAge: 43200 },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      allowDangerousEmailAccountLinking: true,
     }),
     Nodemailer({
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM,
       sendVerificationRequest,
+    }),
+    Credentials({
+      name: "メールアドレスとパスワード",
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+        password: { label: "パスワード", type: "password" },
+      },
+      async authorize(credentials) {
+        const parsedCredentials = z
+          .object({ email: z.email(), password: z.string().min(6) })
+          .safeParse(credentials);
+
+        if (parsedCredentials.success) {
+          const { email, password } = parsedCredentials.data;
+          const user = await getUserByEmail(email);
+          if (!user || !user.password) return null;
+          const passwordsMatch = await bcrypt.compare(password, user.password);
+
+          if (passwordsMatch)
+            return { id: user.id, email: user.email, name: user.name };
+        }
+
+        return null;
+      },
     }),
   ],
   events: {

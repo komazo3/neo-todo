@@ -2,8 +2,9 @@
 
 import { Button } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { formatDate } from "@/app/lib/util";
+import { DatePicker, MobileDatePicker } from "@mui/x-date-pickers";
 
 type DateSelectorProps = {
   currentDate?: Date;
@@ -12,10 +13,7 @@ type DateSelectorProps = {
 export default function DateSelector({ currentDate }: DateSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const displayDate = useMemo(
-    () => currentDate ?? new Date(),
-    [currentDate],
-  );
+  const displayDate = useMemo(() => currentDate ?? new Date(), [currentDate]);
 
   const getDateQueryString = useCallback(
     (date: Date): string => {
@@ -45,6 +43,9 @@ export default function DateSelector({ currentDate }: DateSelectorProps) {
     router.push(`/todos${getDateQueryString(new Date())}`);
   }, [router, getDateQueryString]);
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerValue, setPickerValue] = useState<Date | null>(displayDate);
+
   return (
     <div className="mb-6 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
       <Button onClick={handlePrevDay} size="small" variant="outlined">
@@ -52,9 +53,27 @@ export default function DateSelector({ currentDate }: DateSelectorProps) {
       </Button>
 
       <div className="min-w-35 text-center">
-        <p className="text-base font-semibold text-slate-900 sm:text-lg">
+        <MobileDatePicker
+          value={pickerValue}
+          onChange={(newValue) => setPickerValue(newValue)} // 内部状態を更新
+          onAccept={(newValue) => {
+            if (!newValue) return;
+            router.push(`/todos${getDateQueryString(newValue)}`);
+          }}
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          slotProps={{
+            textField: { sx: { display: "none" } },
+          }}
+        />
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => setPickerOpen(true)}
+          sx={{ fontWeight: 600, fontSize: "1rem" }}
+        >
           {formatDate(displayDate)}
-        </p>
+        </Button>
       </div>
 
       <Button onClick={handleNextDay} size="small" variant="outlined">
