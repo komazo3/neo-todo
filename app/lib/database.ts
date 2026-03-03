@@ -60,7 +60,7 @@ export async function listTodos(
   });
 }
 
-export async function getTodo(todoId: number, userId: string) {
+export async function getTodo(todoId: string, userId: string) {
   return prisma.todo.findUnique({
     where: { id: todoId, userId: userId },
   });
@@ -73,7 +73,7 @@ export async function insertTodo(data: TodoCreateInput) {
 }
 
 export async function updateTodo(
-  id: number,
+  id: string,
   userId: string,
   data: TodoUpdateInput,
 ) {
@@ -85,7 +85,7 @@ export async function updateTodo(
 }
 
 export async function updateTodoStatus(
-  id: number,
+  id: string,
   userId: string,
   done: boolean,
 ) {
@@ -96,7 +96,7 @@ export async function updateTodoStatus(
   if (count === 0) throw new Error("Todo not found or access denied");
 }
 
-export async function deleteTodo(id: number, userId: string) {
+export async function deleteTodo(id: string, userId: string) {
   const { count } = await prisma.todo.deleteMany({
     where: { id, userId },
   });

@@ -18,10 +18,10 @@ import { Status } from "@/generated/prisma/enums";
 import { useToast } from "@/app/components/toastProvider";
 
 export default function TodoList({ todos }: { todos: TodoDTO[] }) {
-  const [openedTodoId, setOpenedTodoId] = useState<number | null>(null);
+  const [openedTodoId, setOpenedTodoId] = useState<string | null>(null);
   const [optimisticTodos, setOptimisticTodos] = useOptimistic(
     todos,
-    (state, update: { id: number; status: "DONE" | "UNTOUCHED" }) =>
+    (state, update: { id: string; status: "DONE" | "UNTOUCHED" }) =>
       state.map((t) =>
         t.id === update.id ? { ...t, status: update.status } : t,
       ),
@@ -33,7 +33,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
 
   const handleCloseDialog = () => setOpenedTodoId(null);
 
-  function toggleTodoDone(todoId: number, checked: boolean) {
+  function toggleTodoDone(todoId: string, checked: boolean) {
     const nextStatus = checked ? Status.DONE : Status.UNTOUCHED;
 
     startTransition(async () => {
@@ -54,7 +54,7 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
     });
   }
 
-  function handleDeleteTodo(todoId: number) {
+  function handleDeleteTodo(todoId: string) {
     startTransition(async () => {
       try {
         await deleteTodoAction(todoId);

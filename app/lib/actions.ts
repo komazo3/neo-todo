@@ -48,7 +48,7 @@ export type CreateTodoData = z.infer<typeof CreateTodo>; // deadline/isAllDay含
 // 編集画面用
 const UpdateTodo = z
   .object({
-    id: z.coerce.number().int().positive("IDが不正です"),
+    id: z.coerce.string(),
     title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
     content: z.string().max(500, "最大500文字です"),
     priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
@@ -199,7 +199,7 @@ export async function updateTodoAction(
   redirect("/todos");
 }
 
-export async function updateTodoStatusAction(id: number, done: boolean) {
+export async function updateTodoStatusAction(id: string, done: boolean) {
   const session = await auth();
   if (!session?.user?.id) {
     return { errors: {}, message: "ログインが必要です。" };
@@ -226,7 +226,7 @@ export async function updateTodoStatusAction(id: number, done: boolean) {
   revalidatePath("/todos");
 }
 
-export async function deleteTodoAction(id: number) {
+export async function deleteTodoAction(id: string) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("ログインが必要です。");

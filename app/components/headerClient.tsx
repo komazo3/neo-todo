@@ -15,6 +15,7 @@ import Logout from "@mui/icons-material/Logout";
 import { useState } from "react";
 import CheckBoxOutlined from "@mui/icons-material/CheckBoxOutlined";
 import { usePathname } from "next/navigation";
+import Add from "@mui/icons-material/Add";
 
 export default function HeaderClient({ user }: { user: UserLite | null }) {
   const isLoggedIn = !!user;
@@ -60,6 +61,18 @@ export default function HeaderClient({ user }: { user: UserLite | null }) {
                 }
               >
                 TODO一覧
+              </Link>
+              <Link
+                href="/todos/new"
+                aria-label="todosNew"
+                title="todosNew"
+                className={
+                  pathname === "/todos/new"
+                    ? "text-blue-500 font-bold border-b-blue-400 border-b-2"
+                    : "text-gray-700"
+                }
+              >
+                TODOを追加
               </Link>
             </div>
           )}
@@ -125,6 +138,14 @@ export default function HeaderClient({ user }: { user: UserLite | null }) {
                     <CheckBoxOutlined fontSize="small"></CheckBoxOutlined>
                   </ListItemIcon>
                   TODO一覧
+                </MenuItem>
+              </Link>
+              <Link href="/todos/new" onClick={handleClose}>
+                <MenuItem>
+                  <ListItemIcon>
+                    <Add fontSize="small"></Add>
+                  </ListItemIcon>
+                  TODOを追加
                 </MenuItem>
               </Link>
               <Divider />

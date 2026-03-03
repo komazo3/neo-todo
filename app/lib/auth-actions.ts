@@ -182,8 +182,8 @@ export async function verifyEmailAction(
   if (!vt || vt.expires < new Date()) {
     return {
       ok: false,
-      error:
-        "リンクの有効期限が切れています。再度アカウント作成からお試しください。",
+      error: `リンクの有効期限が切れています。
+        再度アカウント作成からお試しください。`,
     };
   }
 

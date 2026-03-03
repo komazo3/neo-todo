@@ -22,10 +22,14 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
     redirect("/login");
   }
 
-  const todoId = Number.parseInt(slug, 10);
-  if (Number.isNaN(todoId)) notFound();
+  if (!slug) notFound();
 
-  const targetTodo = await getTodo(todoId, session.user.id);
+  let targetTodo;
+  try {
+    targetTodo = await getTodo(slug, session.user.id);
+  } catch {
+    notFound();
+  }
   if (!targetTodo) notFound();
 
   const jstDisplay = utcToJstDateForPicker(targetTodo.deadline);
