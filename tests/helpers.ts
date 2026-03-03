@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { prisma } from "../app/lib/prisma";
 
 /**
  * テスト用ユーザー情報
@@ -63,4 +64,78 @@ export async function logout(page: Page): Promise<void> {
 
   // ログインページへのリダイレクトを待つ
   await page.waitForURL("/login");
+}
+
+/**
+ * DB操作: 期限切れのverificationTokenを作成
+ * @param email - メールアドレス
+ * @param expiresHoursAgo - 何時間前に期限切れにするか
+ * @returns トークンと有効期限
+ */
+export async function createExpiredToken(
+  email: string,
+  expiresHoursAgo: number = 1,
+): Promise<{ token: string; email: string; expires: Date }> {
+  const token = crypto.randomUUID();
+  const expires = new Date(Date.now() - expiresHoursAgo * 60 * 60 * 1000); // 指定時間前に設定
+
+  await prisma.verificationToken.create({
+    data: {
+      identifier: email,
+      token,
+      expires,
+    },
+  });
+
+  return { token, email, expires };
+}
+
+/**
+ * DB操作: ユーザーなしの有効なverificationTokenを作成
+ * @param email - メールアドレス（ユーザーが存在しないもの）
+ * @returns トークン
+ */
+export async function createTokenWithoutUser(
+  email: string,
+): Promise<{ token: string; email: string }> {
+  const token = crypto.randomUUID();
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24時間後
+
+  // 念のため、このメールアドレスのユーザーが存在しないことを確認
+  await prisma.user.deleteMany({
+    where: { email },
+  });
+
+  // トークンを作成
+  await prisma.verificationToken.create({
+    data: {
+      identifier: email,
+      token,
+      expires,
+    },
+  });
+
+  return { token, email };
+}
+
+/**
+ * DB操作: verificationTokenを削除
+ * @param token - 削除するトークン
+ */
+export async function deleteVerificationToken(token: string): Promise<void> {
+  await prisma.verificationToken.deleteMany({
+    where: { token },
+  });
+}
+
+/**
+ * DB操作: 指定したメールアドレスの全verificationTokenを削除
+ * @param email - メールアドレス
+ */
+export async function deleteVerificationTokensByEmail(
+  email: string,
+): Promise<void> {
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: email },
+  });
 }
