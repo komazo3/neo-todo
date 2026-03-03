@@ -121,51 +121,49 @@ export default function EditTodoForm({
   const deadlineTimeErrors = mergedErrors("deadlineTime");
 
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="px-5 py-2">
       <form onSubmit={onSubmit}>
         <input type="hidden" name="id" value={todo.id} />
-        <div>
-          <TextField
-            id="title"
-            name="title"
-            margin="normal"
-            label="*タイトル"
-            variant="outlined"
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: 50 } }}
-            defaultValue={todo.title}
-            error={!!titleErrors?.length}
-          />
-          <FormHelperText>最大50文字</FormHelperText>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-full">
+            <TextField
+              id="title"
+              name="title"
+              margin="normal"
+              label="*タイトル"
+              variant="outlined"
+              fullWidth
+              slotProps={{ htmlInput: { maxLength: 50 } }}
+              defaultValue={todo.title}
+              error={!!titleErrors?.length}
+            />
+            <FormHelperText>最大50文字</FormHelperText>
+            {titleErrors?.length && (
+              <FormHelperText error>{titleErrors[0]}</FormHelperText>
+            )}
+          </div>
 
-          {titleErrors?.length && (
-            <FormHelperText error>{titleErrors[0]}</FormHelperText>
-          )}
-        </div>
+          <div className="col-span-full">
+            <TextField
+              id="content"
+              name="content"
+              multiline
+              margin="normal"
+              rows={9}
+              label="内容"
+              variant="outlined"
+              fullWidth
+              slotProps={{ htmlInput: { maxLength: 500 } }}
+              defaultValue={todo.content}
+              error={!!contentErrors?.length}
+            />
+            <FormHelperText>最大500文字</FormHelperText>
+            {contentErrors?.length && (
+              <FormHelperText error>{contentErrors[0]}</FormHelperText>
+            )}
+          </div>
 
-        <div>
-          <TextField
-            id="content"
-            name="content"
-            multiline
-            margin="normal"
-            rows={9}
-            label="内容"
-            variant="outlined"
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: 500 } }}
-            defaultValue={todo.content}
-            error={!!contentErrors?.length}
-          />
-          <FormHelperText>最大500文字</FormHelperText>
-
-          {contentErrors?.length && (
-            <FormHelperText error>{contentErrors[0]}</FormHelperText>
-          )}
-        </div>
-
-        <div className="mb-5 grid gap-4 sm:grid-cols-2">
-          <div>
+          <div className="col-span-full sm:col-span-1">
             <TextField
               id="outlined-select-currency"
               name="priority"
@@ -189,84 +187,80 @@ export default function EditTodoForm({
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="col-span-full sm:col-span-1">
             <input
               type="hidden"
               name="deadlineDate"
               value={deadlineDateFormValue}
             />
+            <DatePicker
+              label="*期限日"
+              sx={{ width: "100%" }}
+              value={deadlineValue}
+              onChange={(v) =>
+                v &&
+                setDeadlineValue(
+                  (prev) =>
+                    new Date(
+                      v.getFullYear(),
+                      v.getMonth(),
+                      v.getDate(),
+                      prev.getHours(),
+                      prev.getMinutes(),
+                      prev.getSeconds(),
+                      prev.getMilliseconds(),
+                    ),
+                )
+              }
+              slotProps={{
+                textField: { error: !!deadlineDateErrors?.length },
+              }}
+              disablePast
+            />
+            {deadlineDateErrors?.length && (
+              <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+            )}
+          </div>
+
+          <div className="col-span-full sm:col-span-1">
             <input
               type="hidden"
               name="deadlineTime"
               value={deadlineTimeFormValue}
             />
-
-            <div>
-              <DatePicker
-                label="*期限日"
-                sx={{ width: "100%" }}
-                value={deadlineValue}
-                onChange={(v) =>
-                  v &&
-                  setDeadlineValue(
-                    (prev) =>
-                      new Date(
-                        v.getFullYear(),
-                        v.getMonth(),
-                        v.getDate(),
-                        prev.getHours(),
-                        prev.getMinutes(),
-                        prev.getSeconds(),
-                        prev.getMilliseconds(),
-                      ),
-                  )
-                }
-                slotProps={{
-                  textField: {
-                    error: !!deadlineDateErrors?.length,
-                  },
-                }}
-                disablePast
-              />
-              {deadlineDateErrors?.length && (
-                <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
-              )}
-            </div>
-            <div>
-              <TimePicker
-                label="時刻"
-                value={deadlineValue}
-                onChange={(v) =>
-                  v &&
-                  setDeadlineValue(
-                    (prev) =>
-                      new Date(
-                        prev.getFullYear(),
-                        prev.getMonth(),
-                        prev.getDate(),
-                        v.getHours(),
-                        v.getMinutes(),
-                        v.getSeconds(),
-                        v.getMilliseconds(),
-                      ),
-                  )
-                }
-                slotProps={{
-                  textField: { error: !!deadlineTimeErrors?.length },
-                }}
-              />
-              {deadlineTimeErrors?.length && (
-                <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
-              )}
-            </div>
+            <TimePicker
+              label="時刻"
+              sx={{ width: "100%" }}
+              value={deadlineValue}
+              onChange={(v) =>
+                v &&
+                setDeadlineValue(
+                  (prev) =>
+                    new Date(
+                      prev.getFullYear(),
+                      prev.getMonth(),
+                      prev.getDate(),
+                      v.getHours(),
+                      v.getMinutes(),
+                      v.getSeconds(),
+                      v.getMilliseconds(),
+                    ),
+                )
+              }
+              slotProps={{
+                textField: { error: !!deadlineTimeErrors?.length },
+              }}
+            />
+            {deadlineTimeErrors?.length && (
+              <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+            )}
           </div>
         </div>
 
-        <CardActions sx={{ justifyContent: "flex-end" }}>
+        <CardActions sx={{ justifyContent: "flex-end" }} className="mt-5">
           <Link href="/todos">
             <Button variant="outlined">キャンセル</Button>
           </Link>
-
           <Button
             type="submit"
             color="primary"
