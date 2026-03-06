@@ -141,96 +141,54 @@ export async function deleteVerificationTokensByEmail(
 }
 
 /**
- * テスト用TODO作成: テスト用のTODOレコードを指定数作成
- * @param userId - ユーザーID
- * @param count - 作成するTODO数（デフォルト: 5）
- * @returns 作成されたTODOのID配列
+ * DB操作: テスト用TODOを本日のJST日付で作成する
+ * deadlineは本日JST 12:00 (= UTC 03:00) に設定する
  */
-export async function createTestTodos(
-  userId: string,
-  count: number = 5,
-): Promise<string[]> {
-  const testTodos = [
-    {
-      title: "重要な会議の準備",
-      content: "明日の重要な会議資料を準備する。\n- スライド作成\n- データ確認",
-      priority: "HIGH",
-      deadline: new Date(2025, 1, 1, 0, 0, 0),
+export async function createTestTodo(overrides?: {
+  title?: string;
+  content?: string;
+  status?: "UNTOUCHED" | "DONE";
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  isAllDay?: boolean;
+  deadline?: Date;
+}): Promise<{ id: string; title: string }> {
+  const user = await prisma.user.findUnique({
+    where: { email: TEST_USER.email },
+  });
+  if (!user) throw new Error("Test user not found");
+
+  // 本日のJST日付で正午(JST 12:00 = UTC 03:00)のdeadlineを設定
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const jstNow = new Date(Date.now() + JST_OFFSET_MS);
+  const defaultDeadline = new Date(
+    Date.UTC(
+      jstNow.getUTCFullYear(),
+      jstNow.getUTCMonth(),
+      jstNow.getUTCDate(),
+      3,
+      0,
+      0,
+    ),
+  );
+
+  const todo = await prisma.todo.create({
+    data: {
+      userId: user.id,
+      title: overrides?.title ?? `テストTODO ${Date.now()}`,
+      content: overrides?.content ?? "テスト用のコンテンツです。",
+      status: overrides?.status ?? "UNTOUCHED",
+      priority: overrides?.priority ?? "MEDIUM",
+      deadline: overrides?.deadline ?? defaultDeadline,
+      isAllDay: overrides?.isAllDay ?? false,
     },
-    {
-      title: "メール返信",
-      content: "クライアントからのメール2件に返信する。",
-      priority: "MEDIUM",
-    },
-    {
-      title: "コードレビュー",
-      content: "プルリクエスト#123のレビューを完了する。",
-      priority: "HIGH",
-    },
-    {
-      title: "チーム定例会議",
-      content: "週間ミーティングに参加。\n時間: 10:00-11:00",
-      priority: "MEDIUM",
-    },
-    {
-      title: "ドキュメント作成",
-      content: "APIドキュメントを更新する。",
-      priority: "LOW",
-    },
-  ];
+  });
 
-  const createdTodoIds: string[] = [];
-  const today = new Date();
-
-  for (let i = 0; i < Math.min(count, testTodos.length); i++) {
-    const todo = testTodos[i];
-
-    // 期限日を 1日目, 2日目, ... に設定
-    const deadline = new Date(today);
-    deadline.setDate(deadline.getDate() + i + 1);
-
-    // 期限時刻を設定（偶数番目は12:00、奇数番目は18:00）
-    if (!todo.isAllDay) {
-      deadline.setHours(i % 2 === 0 ? 12 : 18, 0, 0, 0);
-    }
-
-    // ステータスを混在させる（最初の2つはDONE、残りはUNTOUCHED）
-    const status = i < 2 ? "DONE" : "UNTOUCHED";
-
-    const createdTodo = await prisma.todo.create({
-      data: {
-        userId,
-        title: todo.title,
-        content: todo.content,
-        priority: todo.priority as "HIGH" | "MEDIUM" | "LOW",
-        deadline,
-        isAllDay: todo.isAllDay,
-        status: status as "DONE" | "UNTOUCHED",
-      },
-    });
-
-    createdTodoIds.push(createdTodo.id);
-  }
-
-  return createdTodoIds;
+  return { id: todo.id, title: todo.title };
 }
 
 /**
- * テスト用TODO削除: ユーザーのTODOを全て削除
- * @param userId - ユーザーID
+ * DB操作: テスト用TODOを削除する（存在しない場合はスキップ）
  */
-export async function deleteAllUserTodos(userId: string): Promise<void> {
-  await prisma.todo.deleteMany({
-    where: { userId },
-  });
-}
-
-/**
- * テスト用TODO削除: 指定されたIDのTODOを削除
- * @param todoIds - 削除するTODOID配列
- */
-export async function deleteTestTodos(todoIds: string[]): Promise<void> {
-  await prisma.todo.deleteMany({
-    where: { id: { in: todoIds } },
-  });
+export async function deleteTestTodo(todoId: string): Promise<void> {
+  await prisma.todo.deleteMany({ where: { id: todoId } });
 }

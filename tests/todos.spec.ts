@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { loginAsUser, TEST_USER } from "./helpers";
-import { addDays, format, subDays } from "date-fns";
+import { loginAsUser, createTestTodo, deleteTestTodo } from "./helpers";
+import { addDays, addHours, format, subDays } from "date-fns";
 
 test.describe("TODO一覧ページ（/todos）のテスト", () => {
   test("ログインなしでアクセスするとログインページにリダイレクトされる", async ({
@@ -345,5 +345,448 @@ test.describe("TODO一覧ページ（/todos）のテスト", () => {
       .filter({ hasText: /\d{4}\/\d{2}\/\d{2}/ });
     const displayedDate = await dateDisplay.first().textContent();
     expect(displayedDate).toContain(`${year}/${month}/${day}`);
+  });
+
+  test("本日ボタンが表示されている", async ({ page }) => {
+    await loginAsUser(page);
+    await page.goto("/todos");
+
+    const todayButton = page.getByRole("button", { name: "本日" });
+    await expect(todayButton).toBeVisible();
+  });
+
+  test("本日ボタンをクリックすると今日の日付に戻る", async ({ page }) => {
+    await loginAsUser(page);
+    await page.goto("/todos");
+
+    // 前日に移動
+    const prevButton = page.getByRole("button", { name: /← 前日/ });
+    await prevButton.click();
+    await page.waitForURL(/date=/);
+
+    // 本日ボタンをクリック
+    const todayButton = page.getByRole("button", { name: "本日" });
+    await todayButton.click();
+    await page.waitForURL(/date=/);
+
+    // 今日の日付が表示されている
+    const dateDisplay = page
+      .locator("button")
+      .filter({ hasText: /\d{4}\/\d{2}\/\d{2}/ });
+    await expect(dateDisplay.first()).toHaveText(
+      format(new Date(), "yyyy/MM/dd"),
+    );
+  });
+
+  test.describe.serial("TODOアイテムの表示と操作", () => {
+    let todoId: string;
+    let todoTitle: string;
+
+    test.beforeEach(async () => {
+      const t = await createTestTodo({
+        title: `テストTODO ${Date.now()}`,
+        priority: "HIGH",
+      });
+      todoId = t.id;
+      todoTitle = t.title;
+    });
+
+    test.afterEach(async () => {
+      await deleteTestTodo(todoId);
+    });
+
+    test("TODOアイテムが一覧に表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      await expect(page.getByText(todoTitle)).toBeVisible();
+    });
+
+    test("TODOアイテムに優先度チップが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      // HIGH優先度のチップが表示されている
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await expect(todoItem.getByText("優先度: 高")).toBeVisible();
+    });
+
+    test("TODOアイテムに期限が表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await expect(todoItem.getByText(/期限:/)).toBeVisible();
+    });
+
+    test("TODOアイテムに編集ボタンが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await expect(todoItem.getByRole("link", { name: "編集" })).toBeVisible();
+    });
+
+    test("TODOアイテムに削除ボタンが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await expect(
+        todoItem.getByRole("button", { name: "削除" }),
+      ).toBeVisible();
+    });
+
+    test("チェックボックスをクリックするとTODOが完了になる", async ({
+      page,
+    }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      const checkbox = todoItem.getByRole("checkbox");
+      await expect(checkbox).not.toBeChecked();
+
+      await checkbox.click();
+
+      await expect(checkbox).toBeChecked();
+    });
+
+    test("完了済みTODOのチェックボックスをクリックすると未完了になる", async ({
+      page,
+    }) => {
+      const doneTitle = `完了済みTODO ${Date.now()}`;
+      const { id: doneId } = await createTestTodo({
+        title: doneTitle,
+        status: "DONE",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const todoItem = page.locator("li").filter({ hasText: doneTitle });
+        const checkbox = todoItem.getByRole("checkbox");
+        await expect(checkbox).toBeChecked();
+
+        await checkbox.click();
+
+        await expect(checkbox).not.toBeChecked();
+      } finally {
+        await deleteTestTodo(doneId);
+      }
+    });
+
+    test("編集ボタンをクリックするとTODO編集ページに遷移する", async ({
+      page,
+    }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await todoItem.getByRole("button", { name: "編集" }).click();
+
+      await expect(page).toHaveURL(new RegExp(`/todos/${todoId}`));
+    });
+
+    test("削除ボタンをクリックすると確認ダイアログが表示される", async ({
+      page,
+    }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await todoItem.getByRole("button", { name: "削除" }).click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByText(`${todoTitle}を削除しますか？`),
+      ).toBeVisible();
+    });
+
+    test("削除ダイアログのキャンセルをクリックするとダイアログが閉じる", async ({
+      page,
+    }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await todoItem.getByRole("button", { name: "削除" }).click();
+
+      await page.getByRole("button", { name: "キャンセル" }).click();
+
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+      // TODOは削除されていない
+      await expect(page.getByText(todoTitle)).toBeVisible();
+    });
+
+    test("削除ダイアログのOKをクリックするとTODOが削除される", async ({
+      page,
+    }) => {
+      await loginAsUser(page);
+      await page.goto("/todos");
+
+      const todoItem = page.locator("li").filter({ hasText: todoTitle });
+      await todoItem.getByRole("button", { name: "削除" }).click();
+
+      await page.getByRole("button", { name: "OK" }).click();
+
+      // ダイアログが閉じるまで待機（サーバーアクション完了の確認）
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+
+      // ページをリロードして最新のTODO一覧を取得し、削除されていることを確認
+      await page.reload();
+      await expect(
+        page.locator("li").filter({ hasText: todoTitle }),
+      ).not.toBeVisible();
+    });
+  });
+
+  test.describe("並び替えによる表示順の確認", () => {
+    test("「期限が近い順」で期限が早いTODOが先に表示される", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const nearDeadline = addHours(new Date(), 1);
+      const farDeadline = addHours(new Date(), 2);
+
+      const near = await createTestTodo({
+        title: `期限近いTODO ${ts}`,
+        deadline: nearDeadline,
+      });
+      const far = await createTestTodo({
+        title: `期限遠いTODO ${ts}`,
+        deadline: farDeadline,
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const sortFilter = page.getByRole("combobox", { name: "並び替え" });
+        await sortFilter.click();
+        await page.getByRole("option", { name: "期限が近い順" }).click();
+
+        const items = page.locator("li");
+        const texts = await items.allTextContents();
+        const nearIdx = texts.findIndex((t) => t.includes(near.title));
+        const farIdx = texts.findIndex((t) => t.includes(far.title));
+
+        expect(nearIdx).toBeGreaterThanOrEqual(0);
+        expect(farIdx).toBeGreaterThanOrEqual(0);
+        expect(nearIdx).toBeLessThan(farIdx);
+      } finally {
+        await deleteTestTodo(near.id);
+        await deleteTestTodo(far.id);
+      }
+    });
+
+    test("「期限が遠い順」で期限が遅いTODOが先に表示される", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const nearDeadline = addHours(new Date(), 1);
+      const farDeadline = addHours(new Date(), 2);
+
+      const near = await createTestTodo({
+        title: `期限近いTODO ${ts}`,
+        deadline: nearDeadline,
+      });
+      const far = await createTestTodo({
+        title: `期限遠いTODO ${ts}`,
+        deadline: farDeadline,
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const sortFilter = page.getByRole("combobox", { name: "並び替え" });
+        await sortFilter.click();
+        await page.getByRole("option", { name: "期限が遠い順" }).click();
+
+        const items = page.locator("li");
+        const texts = await items.allTextContents();
+        const nearIdx = texts.findIndex((t) => t.includes(near.title));
+        const farIdx = texts.findIndex((t) => t.includes(far.title));
+
+        expect(nearIdx).toBeGreaterThanOrEqual(0);
+        expect(farIdx).toBeGreaterThanOrEqual(0);
+        expect(farIdx).toBeLessThan(nearIdx);
+      } finally {
+        await deleteTestTodo(near.id);
+        await deleteTestTodo(far.id);
+      }
+    });
+
+    test("「優先度が高い順」でHIGHのTODOがLOWより先に表示される", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const high = await createTestTodo({
+        title: `HIGH優先度TODO ${ts}`,
+        priority: "HIGH",
+      });
+      const low = await createTestTodo({
+        title: `LOW優先度TODO ${ts}`,
+        priority: "LOW",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const sortFilter = page.getByRole("combobox", { name: "並び替え" });
+        await sortFilter.click();
+        await page.getByRole("option", { name: "優先度が高い順" }).click();
+
+        const items = page.locator("li");
+        const texts = await items.allTextContents();
+        const highIdx = texts.findIndex((t) => t.includes(high.title));
+        const lowIdx = texts.findIndex((t) => t.includes(low.title));
+
+        expect(highIdx).toBeGreaterThanOrEqual(0);
+        expect(lowIdx).toBeGreaterThanOrEqual(0);
+        expect(highIdx).toBeLessThan(lowIdx);
+      } finally {
+        await deleteTestTodo(high.id);
+        await deleteTestTodo(low.id);
+      }
+    });
+
+    test("「優先度が低い順」でLOWのTODOがHIGHより先に表示される", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const high = await createTestTodo({
+        title: `HIGH優先度TODO ${ts}`,
+        priority: "HIGH",
+      });
+      const low = await createTestTodo({
+        title: `LOW優先度TODO ${ts}`,
+        priority: "LOW",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const sortFilter = page.getByRole("combobox", { name: "並び替え" });
+        await sortFilter.click();
+        await page.getByRole("option", { name: "優先度が低い順" }).click();
+
+        const items = page.locator("li");
+        const texts = await items.allTextContents();
+        const highIdx = texts.findIndex((t) => t.includes(high.title));
+        const lowIdx = texts.findIndex((t) => t.includes(low.title));
+
+        expect(highIdx).toBeGreaterThanOrEqual(0);
+        expect(lowIdx).toBeGreaterThanOrEqual(0);
+        expect(lowIdx).toBeLessThan(highIdx);
+      } finally {
+        await deleteTestTodo(high.id);
+        await deleteTestTodo(low.id);
+      }
+    });
+  });
+
+  test.describe("ステータスフィルタによる絞り込み確認", () => {
+    test("「完了」フィルタで完了済みTODOが表示され未完了TODOが非表示になる", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const undone = await createTestTodo({
+        title: `未完了TODO ${ts}`,
+        status: "UNTOUCHED",
+      });
+      const done = await createTestTodo({
+        title: `完了TODO ${ts}`,
+        status: "DONE",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const statusFilter = page.getByRole("combobox", { name: "ステータス" });
+        await statusFilter.click();
+        await page.getByRole("option", { name: "完了", exact: true }).click();
+        await expect(statusFilter).toHaveValue(/完了|DONE/);
+
+        await expect(page.getByText(done.title)).toBeVisible();
+        await expect(page.getByText(undone.title)).not.toBeVisible();
+      } finally {
+        await deleteTestTodo(undone.id);
+        await deleteTestTodo(done.id);
+      }
+    });
+
+    test("「未完了」フィルタで未完了TODOが表示され完了済みTODOが非表示になる", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const undone = await createTestTodo({
+        title: `未完了TODO ${ts}`,
+        status: "UNTOUCHED",
+      });
+      const done = await createTestTodo({
+        title: `完了TODO ${ts}`,
+        status: "DONE",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        const statusFilter = page.getByRole("combobox", { name: "ステータス" });
+        await statusFilter.click();
+        await page.getByRole("option", { name: "未完了", exact: true }).click();
+        await expect(statusFilter).toHaveValue(/未完了|UNTOUCHED/);
+
+        await expect(page.getByText(undone.title)).toBeVisible();
+        await expect(
+          page.getByText(done.title, { exact: true }),
+        ).not.toBeVisible();
+      } finally {
+        await deleteTestTodo(undone.id);
+        await deleteTestTodo(done.id);
+      }
+    });
+
+    test("「すべて」に切り替えると完了・未完了両方のTODOが表示される", async ({
+      page,
+    }) => {
+      const ts = Date.now();
+      const undone = await createTestTodo({
+        title: `未完了TODO ${ts}`,
+        status: "UNTOUCHED",
+      });
+      const done = await createTestTodo({
+        title: `完了TODO ${ts}`,
+        status: "DONE",
+      });
+
+      try {
+        await loginAsUser(page);
+        await page.goto("/todos");
+
+        // 一度「完了」に絞り込んでから「すべて」に戻す
+        const statusFilter = page.getByRole("combobox", { name: "ステータス" });
+        await statusFilter.click();
+        await page.getByRole("option", { name: "完了", exact: true }).click();
+        await expect(statusFilter).toHaveValue(/完了|DONE/);
+
+        await statusFilter.click();
+        await page.getByRole("option", { name: "すべて" }).click();
+        await expect(statusFilter).toHaveValue(/すべて|ALL/);
+
+        await expect(page.getByText(undone.title)).toBeVisible();
+        await expect(page.getByText(done.title, { exact: true })).toBeVisible();
+      } finally {
+        await deleteTestTodo(undone.id);
+        await deleteTestTodo(done.id);
+      }
+    });
   });
 });
