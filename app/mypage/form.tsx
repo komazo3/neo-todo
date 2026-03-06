@@ -53,7 +53,6 @@ export default function MypageForm({ user }: { user: User }) {
             <input type="hidden" name="id" value={user.id} />
             <div>
               <TextField
-                key={state.fields?.name}
                 id="name"
                 name="name"
                 label="*名前"
