@@ -58,6 +58,67 @@ export const todoFormSchema = z
     }
   });
 
+// Create だけのスキーマに絞る（id/status は不要）
+export const CreateTodo = z
+  .object({
+    title: z.string().min(1).max(50),
+    content: z.string().max(500),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
+    // MUI DatePickerから "YYYY/MM/DD"形式
+    deadlineDate: z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, "期限日が不正です"),
+    // MUI TimePickerから "HH:mm" or ""（空）
+    deadlineTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "時刻の形式が正しくありません",
+      )
+      .optional()
+      .or(z.literal("")),
+  })
+  .transform((data) => {
+    const deadline = parseJstStringsToUtc(
+      data.deadlineDate,
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined,
+    );
+    const isAllDay = !data.deadlineTime || data.deadlineTime === "";
+    return { ...data, deadline, isAllDay };
+  });
+
+// 編集画面用
+export const UpdateTodo = z
+  .object({
+    id: z.coerce.string(),
+    title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+    content: z.string().max(500, "最大500文字です"),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+      message: "優先度を選択してください",
+    }),
+    // MUI DatePickerから "YYYY/MM/DD"形式
+    deadlineDate: z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, "期限日が不正です"),
+    // MUI TimePickerから "HH:mm" or ""（空）
+    deadlineTime: z
+      .string()
+      .regex(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+        "時刻の形式が正しくありません",
+      )
+      .optional()
+      .or(z.literal("")),
+  })
+  .transform((data) => {
+    const deadline = parseJstStringsToUtc(
+      data.deadlineDate,
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined,
+    );
+    const isAllDay = !data.deadlineTime || data.deadlineTime === "";
+    return { ...data, deadline, isAllDay };
+  });
+
 export type TodoFormInput = z.infer<typeof todoFormSchema>;
 export type TodoFormErrors = Partial<Record<keyof TodoFormInput, string[]>>;
 
@@ -68,3 +129,13 @@ export const userFormSchema = z.object({
 
 export type UserFormInput = z.infer<typeof userFormSchema>;
 export type UserFormErrors = Partial<Record<keyof UserFormInput, string[]>>;
+
+// チェックボックスのトグル更新用
+export const UpdateTodoStatus = z.object({
+  done: z.boolean(),
+});
+
+export const UpdateUser = z.object({
+  id: z.string(),
+  name: z.string().min(1, "名前は必須です").max(50, "最大50文字です"),
+});

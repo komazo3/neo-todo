@@ -1,14 +1,14 @@
 "use client";
 
 import { useToast } from "@/app/components/toastProvider";
-import { UpdateFormState, updateTodoAction } from "@/app/lib/actions";
+import { updateTodoAction } from "@/app/lib/actions";
 import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
 import {
   todoFormSchema,
   type TodoFormErrors,
   type TodoFormInput,
 } from "@/app/lib/schemas";
-import type { TodoDTO } from "@/app/lib/types";
+import type { TodoDTO, UpdateFormState } from "@/app/lib/types";
 import {
   Button,
   Card,
@@ -77,15 +77,6 @@ export default function EditTodoForm({
       ? clientErrors[field]
       : (serverState.errors?.[field] as string[] | undefined);
 
-  const deadlineDateFormValue = useMemo(
-    () => format(deadlineValue, "yyyy/MM/dd"),
-    [deadlineValue],
-  );
-  const deadlineTimeFormValue = useMemo(
-    () => format(deadlineValue, "HH:mm"),
-    [deadlineValue],
-  );
-
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -93,6 +84,9 @@ export default function EditTodoForm({
     setClientErrors({});
 
     const formData = new FormData(e.currentTarget);
+
+    console.log(formData.get("deadlineDate"));
+    console.log(formData.get("deadlineTime"));
 
     const parsed = todoFormSchema.safeParse({
       title: formData.get("title"),
@@ -103,6 +97,7 @@ export default function EditTodoForm({
     });
 
     if (!parsed.success) {
+      console.log("client error");
       setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
       return;
     }
@@ -188,30 +183,11 @@ export default function EditTodoForm({
           </div>
 
           <div className="col-span-full sm:col-span-1">
-            <input
-              type="hidden"
-              name="deadlineDate"
-              value={deadlineDateFormValue}
-            />
             <DatePicker
+              name="deadlineDate"
               label="*期限日"
               sx={{ width: "100%" }}
-              value={deadlineValue}
-              onChange={(v) =>
-                v &&
-                setDeadlineValue(
-                  (prev) =>
-                    new Date(
-                      v.getFullYear(),
-                      v.getMonth(),
-                      v.getDate(),
-                      prev.getHours(),
-                      prev.getMinutes(),
-                      prev.getSeconds(),
-                      prev.getMilliseconds(),
-                    ),
-                )
-              }
+              defaultValue={new Date(todo.deadline)}
               slotProps={{
                 textField: { error: !!deadlineDateErrors?.length },
               }}
@@ -223,30 +199,11 @@ export default function EditTodoForm({
           </div>
 
           <div className="col-span-full sm:col-span-1">
-            <input
-              type="hidden"
-              name="deadlineTime"
-              value={deadlineTimeFormValue}
-            />
             <TimePicker
+              name="deadlineTime"
               label="時刻"
               sx={{ width: "100%" }}
-              value={deadlineValue}
-              onChange={(v) =>
-                v &&
-                setDeadlineValue(
-                  (prev) =>
-                    new Date(
-                      prev.getFullYear(),
-                      prev.getMonth(),
-                      prev.getDate(),
-                      v.getHours(),
-                      v.getMinutes(),
-                      v.getSeconds(),
-                      v.getMilliseconds(),
-                    ),
-                )
-              }
+              defaultValue={new Date(todo.deadline)}
               slotProps={{
                 textField: { error: !!deadlineTimeErrors?.length },
               }}

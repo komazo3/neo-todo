@@ -206,6 +206,64 @@ export async function deleteTestTodoByTitle(title: string): Promise<void> {
 }
 
 /**
+ * UI操作: TODO編集ページへ遷移する
+ * @param page - Playwrightのページオブジェクト
+ * @param todoId - 編集対象のTODO ID
+ */
+export async function navigateToEditTodo(
+  page: Page,
+  todoId: string,
+): Promise<void> {
+  await page.goto(`/todos/${todoId}`);
+}
+
+/**
+ * UI操作: TODO編集フォームに値を入力する（既存値をクリアしてから入力）
+ * @param page - Playwrightのページオブジェクト
+ * @param options.title - タイトル
+ * @param options.content - 内容
+ * @param options.priority - 優先度ラベル（"低" | "中" | "高"）
+ * @param options.deadlineDate - 期限日（MUI DatePickerへの入力用）
+ * @param options.deadlineTime - 時刻（"HH:mm" 形式。省略可）
+ */
+export async function fillEditTodoForm(
+  page: Page,
+  options: {
+    title?: string;
+    content?: string;
+    priority?: "低" | "中" | "高";
+    deadlineDate?: Date;
+    deadlineTime?: string;
+  },
+): Promise<void> {
+  if (options.title !== undefined) {
+    const titleInput = page.getByLabel("*タイトル");
+    await titleInput.clear();
+    await titleInput.fill(options.title);
+  }
+  if (options.content !== undefined) {
+    const contentInput = page.getByLabel("内容");
+    await contentInput.clear();
+    await contentInput.fill(options.content);
+  }
+  if (options.priority !== undefined) {
+    const prioritySelect = page.getByRole("combobox", { name: "*優先度" });
+    await prioritySelect.click();
+    await page.getByRole("option", { name: options.priority }).click();
+  }
+  if (options.deadlineDate !== undefined) {
+    const dateInput = page.getByRole("group", { name: "*期限日" });
+    await dateInput.click();
+    await dateInput.pressSequentially(format(options.deadlineDate, "yyyyMMdd"));
+  }
+  if (options.deadlineTime !== undefined) {
+    const timeInput = page.getByRole("group", { name: "時刻" });
+    await timeInput.click();
+    await timeInput.pressSequentially(options.deadlineTime.replace(":", ""));
+  }
+}
+
+/**
  * UI操作: TODO新規登録フォームに値を入力する
  * @param page - Playwrightのページオブジェクト
  * @param options.title - タイトル

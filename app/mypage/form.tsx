@@ -1,11 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useState } from "react";
-import {
-  UpdateFormState,
-  updateUserAction,
-  UpdateUserFormState,
-} from "@/app/lib/actions";
+import { updateUserAction } from "@/app/lib/actions";
 
 import {
   Button,
@@ -18,6 +14,7 @@ import type { User } from "@/generated/prisma/client";
 import { useToast } from "@/app/components/toastProvider";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { UpdateUserFormState } from "../lib/types";
 
 export default function MypageForm({ user }: { user: User }) {
   const router = useRouter();

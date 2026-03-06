@@ -1,3 +1,11 @@
+import {
+  CreateTodo,
+  UpdateTodo,
+  UpdateTodoStatus,
+  UpdateUser,
+} from "./schemas";
+import { z } from "zod";
+
 export type TodoDTO = {
   id: string;
   title: string;
@@ -21,3 +29,29 @@ export type TodoSort =
   | "DEADLINE_DESC"; // 期限：遠い順
 
 export type UserLite = { name: string; image: string; email: string };
+
+export type CreateTodoInput = z.infer<typeof CreateTodo>;
+export type CreateTodoData = z.infer<typeof CreateTodo>; // deadline/isAllDay含む
+
+export type UpdateTodoInput = z.infer<typeof UpdateTodo>;
+
+export type UpdateTodoStatusInput = z.infer<typeof UpdateTodoStatus>;
+
+export type UserUpdateInput = z.infer<typeof UpdateUser>;
+
+export type CreateFormState = {
+  errors: Partial<Record<keyof CreateTodoInput, string[]>>;
+  message: string;
+};
+export type UpdateFormState = {
+  errors: Partial<Record<keyof UpdateTodoInput, string[]>>;
+  message: string;
+  success: boolean;
+  fields?: Record<string, any>;
+};
+export type UpdateUserFormState = {
+  errors: Partial<Record<keyof UserUpdateInput, string[]>>;
+  message: string;
+  success: boolean;
+  fields?: Record<string, any>;
+};
