@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import Link from "next/link";
+import { parse } from "path";
 import { startTransition, useActionState, useState } from "react";
 
 export default function NewTodoForm() {
@@ -50,6 +51,8 @@ export default function NewTodoForm() {
       deadlineTime: formData.get("deadlineTime"),
     });
 
+    console.log(typeof formData.get("deadlineDate"));
+    console.log(parsed);
     if (!parsed.success) {
       setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
       return;

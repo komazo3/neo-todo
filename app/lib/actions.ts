@@ -118,6 +118,8 @@ export async function createTodoAction(
     // もしくは redirect("/login")
   }
 
+  console.log(formData);
+
   const validated = CreateTodo.safeParse({
     title: formData.get("title"),
     content: formData.get("content"),

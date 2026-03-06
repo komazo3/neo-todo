@@ -10,18 +10,21 @@ export const todoFormSchema = z
     priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
       message: "優先度を選択してください",
     }),
-    deadlineDate: z
-      .string()
-      .min(1, "期限日は必須です")
-      .transform((v) => new Date(v))
-      .refine(
-        (d) => !Number.isNaN(d.getTime()),
-        "期限日を正しく入力してください",
-      )
-      .refine(
-        (d) => d >= startOfDay(new Date()),
-        "現在以降の日を入力してください",
-      ),
+    deadlineDate: z.preprocess(
+      (v) => (typeof v === "string" ? new Date(v) : undefined),
+      z
+        .date({
+          error: (d) => "期限日は必須です",
+        })
+        .refine(
+          (d) => !Number.isNaN(d.getTime()),
+          "期限日を正しく入力してください",
+        )
+        .refine(
+          (d) => d >= startOfDay(new Date()),
+          "現在以降の日を入力してください",
+        ),
+    ),
     deadlineTime: z.preprocess(
       (v) => (v === "" ? undefined : v),
       z
@@ -38,11 +41,15 @@ export const todoFormSchema = z
     const deadlineUtc = parseJstStringsToUtc(dateStr, data.deadlineTime);
 
     if (deadlineUtc.getTime() < Date.now()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["deadlineDate"],
-        message: "期限は現在以降を指定してください。",
-      });
+      // 日付が現在よりも前の場合
+      if (startOfDay(deadlineUtc) < startOfDay(Date.now())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["deadlineDate"],
+          message: "期限は現在以降を指定してください。",
+        });
+      }
+      // 日付と時刻が現在よりも前の場合
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["deadlineTime"],

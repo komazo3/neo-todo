@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { format } from "date-fns";
 import { prisma } from "../app/lib/prisma";
 
 /**
@@ -191,4 +192,57 @@ export async function createTestTodo(overrides?: {
  */
 export async function deleteTestTodo(todoId: string): Promise<void> {
   await prisma.todo.deleteMany({ where: { id: todoId } });
+}
+
+/**
+ * DB操作: タイトルでテスト用TODOを削除する（UIテストで作成したTODOのクリーンアップ用）
+ */
+export async function deleteTestTodoByTitle(title: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { email: TEST_USER.email },
+  });
+  if (!user) return;
+  await prisma.todo.deleteMany({ where: { userId: user.id, title } });
+}
+
+/**
+ * UI操作: TODO新規登録フォームに値を入力する
+ * @param page - Playwrightのページオブジェクト
+ * @param options.title - タイトル
+ * @param options.content - 内容
+ * @param options.priority - 優先度ラベル（"低" | "中" | "高"）
+ * @param options.deadlineDate - 期限日（MUI DatePickerへの入力用。en-US形式 MMddyyyy で送信）
+ * @param options.deadlineTime - 時刻（"HH:mm" 形式。省略可）
+ */
+export async function fillNewTodoForm(
+  page: Page,
+  options: {
+    title?: string;
+    content?: string;
+    priority?: "低" | "中" | "高";
+    deadlineDate?: Date;
+    deadlineTime?: string;
+  },
+): Promise<void> {
+  if (options.title !== undefined) {
+    await page.getByLabel("*タイトル").fill(options.title);
+  }
+  if (options.content !== undefined) {
+    await page.getByLabel("内容").fill(options.content);
+  }
+  if (options.priority !== undefined) {
+    const prioritySelect = page.getByRole("combobox", { name: "*優先度" });
+    await prioritySelect.click();
+    await page.getByRole("option", { name: options.priority }).click();
+  }
+  if (options.deadlineDate !== undefined) {
+    const dateInput = page.getByRole("group", { name: "*期限日" });
+    await dateInput.click();
+    await dateInput.pressSequentially(format(options.deadlineDate, "yyyyMMdd"));
+  }
+  if (options.deadlineTime !== undefined) {
+    const timeInput = page.getByRole("group", { name: "時刻" });
+    await timeInput.click();
+    await timeInput.pressSequentially(options.deadlineTime.replace(":", ""));
+  }
 }
