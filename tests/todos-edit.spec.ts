@@ -74,7 +74,9 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
         await loginAsUser(page);
         await navigateToEditTodo(page, todo.id);
 
-        await expect(page.getByRole("group", { name: "*期限日" })).toBeVisible();
+        await expect(
+          page.getByRole("group", { name: "*期限日" }),
+        ).toBeVisible();
       } finally {
         await deleteTestTodo(todo.id);
       }
@@ -137,19 +139,43 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
   });
 
   test.describe("バリデーション", () => {
-    test("タイトルを空にして編集するとエラーが表示される", async ({ page }) => {
-      const todo = await createTestTodo({ title: "バリデーションテスト" });
-      try {
-        await loginAsUser(page);
-        await navigateToEditTodo(page, todo.id);
+    test("タイトル未入力で追加するとエラーが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos/new");
 
-        await page.getByLabel("*タイトル").clear();
-        await page.getByRole("button", { name: "編集" }).click();
+      await fillEditTodoForm(page, {
+        priority: "中",
+        deadlineDate: addDays(new Date(), 1),
+      });
+      await page.getByRole("button", { name: "追加" }).click();
 
-        await expect(page.getByText("タイトルは必須です")).toBeVisible();
-      } finally {
-        await deleteTestTodo(todo.id);
-      }
+      await expect(page.getByText("タイトルは必須です")).toBeVisible();
+    });
+
+    test("優先度未選択で追加するとエラーが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos/new");
+
+      await fillEditTodoForm(page, {
+        title: "テストTODO",
+        deadlineDate: addDays(new Date(), 1),
+      });
+      await page.getByRole("button", { name: "追加" }).click();
+
+      await expect(page.getByText("優先度を選択してください")).toBeVisible();
+    });
+
+    test("期限日未入力で追加するとエラーが表示される", async ({ page }) => {
+      await loginAsUser(page);
+      await page.goto("/todos/new");
+
+      await fillEditTodoForm(page, {
+        title: "テストTODO",
+        priority: "中",
+      });
+      await page.getByRole("button", { name: "追加" }).click();
+
+      await expect(page.getByText("期限日は必須です")).toBeVisible();
     });
 
     test("タイトルが50文字を超えると入力できない", async ({ page }) => {
@@ -236,7 +262,9 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
       await loginAsUser(page);
       await page.goto("/todos/non-existent-id-00000000");
 
-      await expect(page.getByText(/not found|見つかりません|404/i)).toBeVisible();
+      await expect(
+        page.getByText(/編集しようとした TODO は見つかりませんでした。/i),
+      ).toBeVisible();
     });
 
     test("キャンセルボタンをクリックするとTODO一覧に戻る", async ({ page }) => {
@@ -265,7 +293,7 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
         await fillEditTodoForm(page, { title: newTitle });
         await page.getByRole("button", { name: "編集" }).click();
 
-        await page.waitForURL(/\/todos(\?.*)?$/);
+        await page.waitForURL(/\/todos/);
       } finally {
         await deleteTestTodo(todo.id);
         await deleteTestTodoByTitle(newTitle);
@@ -291,8 +319,9 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
         });
         await page.getByRole("button", { name: "編集" }).click();
 
-        await page.waitForURL(/\/todos(\?.*)?$/);
+        await page.waitForURL(/\/todos/);
         await page.goto(`/todos?date=${format(deadlineDate, "yyyy-MM-dd")}`);
+        await page.reload();
         await expect(page.getByText("フル編集テスト")).toBeVisible();
         await expect(page.getByText("編集後コンテンツ")).toBeVisible();
         await expect(page.getByText("優先度: 高")).toBeVisible();
@@ -306,6 +335,7 @@ test.describe("TODO編集ページ（/todos/[slug]）のテスト", () => {
       const todo = await createTestTodo({
         title: "一覧反映確認テスト",
         priority: "LOW",
+        deadline: new Date(new Date(new Date().setHours(23)).setMinutes(59)),
       });
       try {
         await loginAsUser(page);
