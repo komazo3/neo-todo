@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "RecurringGroup" ALTER COLUMN "title" DROP DEFAULT,
+ALTER COLUMN "content" DROP DEFAULT,
+ALTER COLUMN "priority" DROP DEFAULT;

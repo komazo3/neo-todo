@@ -130,15 +130,6 @@ export const recurringFormSchema = z.object({
     message: "優先度を選択してください",
   }),
   recurringDays: z.string().min(1, "少なくとも1つの曜日を選択してください"),
-  recurringEndDate: z.preprocess(
-    (v) => (typeof v === "string" && v !== "" ? new Date(v) : undefined),
-    z
-      .date({
-        error: () => "繰り返し終了日を入力してください",
-      })
-      .refine((d) => !Number.isNaN(d.getTime()), "繰り返し終了日を正しく入力してください")
-      .refine((d) => d >= startOfDay(new Date()), "現在以降の日を入力してください"),
-  ),
   deadlineTime: z.preprocess(
     (v) => (v === "" ? undefined : v),
     z
@@ -179,10 +170,6 @@ export const CreateRecurringTodo = z
     recurringDays: z
       .string()
       .min(1, "少なくとも1つの曜日を選択してください"),
-    // MUI DatePicker から "YYYY/MM/DD" 形式
-    recurringEndDate: z
-      .string()
-      .regex(/^\d{4}\/\d{2}\/\d{2}$/, "繰り返し終了日を正しく入力してください"),
     deadlineTime: z
       .string()
       .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "時刻の形式が正しくありません")
@@ -198,10 +185,7 @@ export const CreateRecurringTodo = z
       data.deadlineTime && data.deadlineTime !== ""
         ? data.deadlineTime
         : undefined;
-    // 終了日の JST 日末（23:59:59）を UTC Date に変換
-    const [ey, em, ed] = data.recurringEndDate.split("/").map(Number);
-    const endDate = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59) - 9 * 60 * 60 * 1000);
-    return { ...data, days, timeStr, endDate };
+    return { ...data, days, timeStr };
   });
 
 // 繰り返しTODO編集用スキーマ（deadline は各インスタンスが保持するため更新不要）
@@ -214,6 +198,11 @@ export const UpdateRecurringTodo = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
     message: "優先度を選択してください",
   }),
+  deadlineTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "時刻の形式が正しくありません")
+    .optional()
+    .or(z.literal("")),
 });
 
 /** マイページ・ユーザー名編集フォーム用 */

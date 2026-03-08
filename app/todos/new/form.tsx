@@ -47,7 +47,6 @@ export default function NewTodoForm() {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
   const [recurringDaysError, setRecurringDaysError] = useState<string>("");
-  const [recurringEndDateError, setRecurringEndDateError] = useState<string>("");
 
   const serverState = isRecurring ? recurringState : singleState;
   const isPending = isRecurring ? isRecurringPending : isSinglePending;
@@ -68,7 +67,6 @@ export default function NewTodoForm() {
     e.preventDefault();
     setClientErrors({});
     setRecurringDaysError("");
-    setRecurringEndDateError("");
 
     const formData = new FormData(e.currentTarget);
 
@@ -91,7 +89,6 @@ export default function NewTodoForm() {
           deadlineTime: errors.deadlineTime,
         } as TodoFormErrors);
         setRecurringDaysError(errors.recurringDays?.[0] ?? "");
-        setRecurringEndDateError(errors.recurringEndDate?.[0] ?? "");
         return;
       }
       formData.set("recurringDays", selectedDays.join(","));
@@ -225,20 +222,6 @@ export default function NewTodoForm() {
                 </FormGroup>
                 {recurringDaysError && (
                   <FormHelperText error>{recurringDaysError}</FormHelperText>
-                )}
-              </div>
-              <div className="col-span-full sm:col-span-1">
-                <DatePicker
-                  name="recurringEndDate"
-                  label="*繰り返し終了日"
-                  sx={{ width: "100%" }}
-                  slotProps={{
-                    textField: { error: !!recurringEndDateError },
-                  }}
-                  disablePast
-                />
-                {recurringEndDateError && (
-                  <FormHelperText error>{recurringEndDateError}</FormHelperText>
                 )}
               </div>
               <div className="col-span-full sm:col-span-1">

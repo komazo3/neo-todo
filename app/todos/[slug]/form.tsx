@@ -30,7 +30,6 @@ import {
   Typography,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
-import { formatDateJst } from "@/app/lib/jst";
 import Link from "next/link";
 import { startTransition, useActionState, useState } from "react";
 
@@ -315,18 +314,6 @@ export default function EditTodoForm({
                         color="primary"
                       />
                     ))}
-                  {todo.recurringGroupEndDate && (
-                    <>
-                      <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                        終了日:
-                      </Typography>
-                      <Chip
-                        label={formatDateJst(todo.recurringGroupEndDate)}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </>
-                  )}
                 </Stack>
               </div>
             )}

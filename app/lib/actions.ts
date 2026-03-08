@@ -232,7 +232,6 @@ export async function createRecurringTodoAction(
     content: formData.get("content"),
     priority: formData.get("priority"),
     recurringDays: formData.get("recurringDays"),
-    recurringEndDate: formData.get("recurringEndDate"),
     deadlineTime: formData.get("deadlineTime"),
   });
 
@@ -250,7 +249,6 @@ export async function createRecurringTodoAction(
       priority: validated.data.priority as Priority,
       days: validated.data.days,
       timeStr: validated.data.timeStr,
-      endDate: validated.data.endDate,
     });
   } catch (e: unknown) {
     return {
@@ -280,6 +278,7 @@ export async function updateRecurringTodoAction(
     title: formData.get("title"),
     content: formData.get("content"),
     priority: formData.get("priority"),
+    deadlineTime: formData.get("deadlineTime"),
   });
 
   if (!validated.success) {
@@ -296,6 +295,11 @@ export async function updateRecurringTodoAction(
     return { errors: {}, message: "TODOが見つかりません。", success: false };
   }
 
+  const timeStr =
+    validated.data.deadlineTime && validated.data.deadlineTime !== ""
+      ? validated.data.deadlineTime
+      : null;
+
   try {
     await updateRecurringTodos(
       validated.data.id,
@@ -307,6 +311,7 @@ export async function updateRecurringTodoAction(
         title: validated.data.title,
         content: validated.data.content,
         priority: validated.data.priority as Priority,
+        timeStr,
       },
     );
   } catch {

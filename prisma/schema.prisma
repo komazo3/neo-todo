@@ -14,13 +14,16 @@ datasource db {
 }
 
 model RecurringGroup {
-  id        String   @id @default(cuid())
-  days      String   // カンマ区切りの曜日番号: "1,3,5" = 月,水,金
-  endDate   DateTime? // 繰り返し終了日（JST の日末 UTC）
+  id        String    @id @default(cuid())
+  days      String    // カンマ区切りの曜日番号: "1,3,5" = 月,水,金
+  title     String    // テンプレート: タイトル
+  content   String    // テンプレート: 内容
+  priority  Priority  // テンプレート: 優先度
+  timeStr   String?   // テンプレート: 時刻 "HH:mm"（null = 終日）
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   todos     Todo[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Todo {

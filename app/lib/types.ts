@@ -16,7 +16,6 @@ export type TodoDTO = {
   isAllDay: boolean;
   recurringGroupId?: string | null;
   recurringGroupDays?: string | null;   // "1,3,5" 形式
-  recurringGroupEndDate?: Date | null;
 };
 
 export type RecurringEditScope = "ONLY_THIS" | "THIS_AND_FUTURE" | "ALL";

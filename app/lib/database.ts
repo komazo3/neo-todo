@@ -125,41 +125,24 @@ export async function updateUser(userId: string, data: UserUpdateInput) {
 
 // ── 繰り返し TODO ────────────────────────────────────────────
 
-/** JST の今日を起点に、選択曜日の deadline を endDate まで生成する */
-function generateRecurringDeadlines(
-  days: number[],
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 指定 JST 日付（y/m/d）の deadline を生成する。
+ * isAllDay = true の場合は 23:59:59 JST、時刻指定時は timeStr を使う。
+ */
+function buildDeadlineForDate(
+  y: number,
+  m: number,
+  d: number,
   timeStr: string | undefined,
-  endDate: Date,
-): Date[] {
-  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-  const nowJstMs = Date.now() + JST_OFFSET_MS;
-  const nowJst = new Date(nowJstMs);
-
-  // JST 今日 0:00 を UTC タイムスタンプで表す
-  const todayStartUtc =
-    Date.UTC(
-      nowJst.getUTCFullYear(),
-      nowJst.getUTCMonth(),
-      nowJst.getUTCDate(),
-    ) - JST_OFFSET_MS;
-
-  const endUtc = endDate.getTime();
-  const dates: Date[] = [];
-
-  for (let cur = todayStartUtc; cur <= endUtc; cur += 24 * 60 * 60 * 1000) {
-    const jst = new Date(cur + JST_OFFSET_MS);
-    const dow = jst.getUTCDay();
-    if (days.includes(dow)) {
-      const y = jst.getUTCFullYear();
-      const m = String(jst.getUTCMonth() + 1).padStart(2, "0");
-      const d = String(jst.getUTCDate()).padStart(2, "0");
-      dates.push(parseJstStringsToUtc(`${y}/${m}/${d}`, timeStr));
-    }
-  }
-  return dates;
+): Date {
+  const mm = String(m).padStart(2, "0");
+  const dd = String(d).padStart(2, "0");
+  return parseJstStringsToUtc(`${y}/${mm}/${dd}`, timeStr);
 }
 
-/** 繰り返しグループを作成し、指定曜日の Todo インスタンスをまとめて登録する */
+/** 繰り返しグループを作成し、今日が対象曜日なら当日 Todo インスタンスを登録する */
 export async function insertRecurringTodos(
   userId: string,
   data: {
@@ -168,33 +151,94 @@ export async function insertRecurringTodos(
     priority: Priority;
     days: number[];
     timeStr: string | undefined;
-    endDate?: Date;
   },
 ) {
-  const defaultEndDate = new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000);
-  const endDate = data.endDate ?? defaultEndDate;
-  const deadlines = generateRecurringDeadlines(data.days, data.timeStr, endDate);
-  if (deadlines.length === 0) throw new Error("指定された終了日までに繰り返し日程がありません。");
-
   const isAllDay = !data.timeStr;
+  const nowJst = new Date(Date.now() + JST_OFFSET_MS);
+  const y = nowJst.getUTCFullYear();
+  const m = nowJst.getUTCMonth() + 1;
+  const d = nowJst.getUTCDate();
+  const todayDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 
   return prisma.$transaction(async (tx) => {
     const group = await tx.recurringGroup.create({
-      data: { days: data.days.join(","), endDate, userId },
-    });
-    await tx.todo.createMany({
-      data: deadlines.map((deadline) => ({
+      data: {
+        days: data.days.join(","),
         title: data.title,
         content: data.content,
         priority: data.priority,
-        deadline,
-        isAllDay,
+        timeStr: data.timeStr ?? null,
         userId,
-        recurringGroupId: group.id,
-      })),
+      },
     });
+
+    // 今日が繰り返し曜日に含まれる場合、当日インスタンスを即時生成
+    if (data.days.includes(todayDow)) {
+      const deadline = buildDeadlineForDate(y, m, d, data.timeStr);
+      await tx.todo.create({
+        data: {
+          title: data.title,
+          content: data.content,
+          priority: data.priority,
+          deadline,
+          isAllDay,
+          userId,
+          recurringGroupId: group.id,
+        },
+      });
+    }
+
     return group;
   });
+}
+
+/**
+ * 一覧画面表示時に呼び出す。
+ * targetDate（JST 日付を UTC で表現）の曜日が対象のグループで、
+ * まだ Todo が存在しない場合のみ新規生成する。
+ */
+export async function ensureTodayRecurringTodos(
+  userId: string,
+  targetDate: Date,
+): Promise<void> {
+  const y = targetDate.getUTCFullYear();
+  const m = targetDate.getUTCMonth() + 1;
+  const d = targetDate.getUTCDate();
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+
+  // 対象 JST 日の UTC 範囲
+  const startUtc = jstToUtc(y, m, d, 0, 0, 0);
+  const endUtc = jstToUtc(y, m, d, 23, 59, 59);
+
+  // 全繰り返しグループと当日 Todo をまとめて取得
+  const groups = await prisma.recurringGroup.findMany({
+    where: { userId },
+    include: {
+      todos: {
+        where: { deadline: { gte: startUtc, lte: endUtc } },
+      },
+    },
+  });
+
+  const toCreate = groups
+    .filter((g) => {
+      const days = g.days.split(",").map(Number);
+      return days.includes(dow) && g.todos.length === 0;
+    })
+    .map((g) => ({
+      title: g.title,
+      content: g.content,
+      priority: g.priority,
+      deadline: buildDeadlineForDate(y, m, d, g.timeStr ?? undefined),
+      isAllDay: g.timeStr === null,
+      status: Status.UNTOUCHED,
+      userId,
+      recurringGroupId: g.id,
+    }));
+
+  if (toCreate.length > 0) {
+    await prisma.todo.createMany({ data: toCreate });
+  }
 }
 
 /** 繰り返し TODO の一括更新（スコープ付き） */
@@ -204,24 +248,49 @@ export async function updateRecurringTodos(
   recurringGroupId: string,
   userId: string,
   scope: RecurringEditScope,
-  data: { title: string; content: string; priority: Priority },
+  data: { title: string; content: string; priority: Priority; timeStr?: string | null },
 ) {
+  const { timeStr, ...todoData } = data;
+
   if (scope === "ONLY_THIS") {
     const { count } = await prisma.todo.updateMany({
       where: { id: todoId, userId },
-      data,
+      data: todoData,
     });
     if (count === 0) throw new Error("Todo not found or access denied");
   } else if (scope === "THIS_AND_FUTURE") {
-    await prisma.todo.updateMany({
-      where: { recurringGroupId, userId, deadline: { gte: deadline } },
-      data,
-    });
+    await prisma.$transaction([
+      prisma.todo.updateMany({
+        where: { recurringGroupId, userId, deadline: { gte: deadline } },
+        data: todoData,
+      }),
+      // 将来生成分のため、グループテンプレートも更新
+      prisma.recurringGroup.updateMany({
+        where: { id: recurringGroupId, userId },
+        data: {
+          title: data.title,
+          content: data.content,
+          priority: data.priority,
+          ...(timeStr !== undefined ? { timeStr } : {}),
+        },
+      }),
+    ]);
   } else {
-    await prisma.todo.updateMany({
-      where: { recurringGroupId, userId },
-      data,
-    });
+    await prisma.$transaction([
+      prisma.todo.updateMany({
+        where: { recurringGroupId, userId },
+        data: todoData,
+      }),
+      prisma.recurringGroup.updateMany({
+        where: { id: recurringGroupId, userId },
+        data: {
+          title: data.title,
+          content: data.content,
+          priority: data.priority,
+          ...(timeStr !== undefined ? { timeStr } : {}),
+        },
+      }),
+    ]);
   }
 }
 
