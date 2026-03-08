@@ -1,30 +1,55 @@
 "use client";
 
 import { useToast } from "@/app/components/toastProvider";
-import { updateTodoAction } from "@/app/lib/actions";
-import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
 import {
+  updateRecurringTodoAction,
+  updateTodoAction,
+} from "@/app/lib/actions";
+import { PRIORITY_DDL_ITEMS, WEEKDAY_ITEMS } from "@/app/lib/constants";
+import {
+  recurringUpdateFormSchema,
   todoFormSchema,
   type TodoFormErrors,
   type TodoFormInput,
 } from "@/app/lib/schemas";
-import type { TodoDTO, UpdateFormState } from "@/app/lib/types";
+import type { RecurringEditScope, TodoDTO, UpdateFormState } from "@/app/lib/types";
 import {
   Button,
   Card,
   CardActions,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormHelperText,
   MenuItem,
+  Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import Link from "next/link";
-import { startTransition, useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 
-/** JST で表示するための期限日・時刻（サーバーから渡す） */
+/** JST の日付文字列 "YYYY/MM/DD" から曜日ラベルを返す */
+function weekdayLabelFromJstDateStr(dateStr: string): string {
+  const [y, m, d] = dateStr.split("/").map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  return (WEEKDAY_ITEMS.find((w) => w.value === dow)?.label ?? "") + "曜日";
+}
+
+/** "1,3,5" 形式の曜日文字列を "月曜日・水曜日・金曜日" に変換 */
+function recurringDaysLabel(daysStr: string): string {
+  return daysStr
+    .split(",")
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((d) => (WEEKDAY_ITEMS.find((w) => w.value === d)?.label ?? "") + "曜日")
+    .join("・");
+}
+
 type EditTodoFormProps = {
   todo: TodoDTO;
   deadlineDateJst?: string;
@@ -57,36 +82,73 @@ export default function EditTodoForm({
   deadlineTimeJst,
 }: EditTodoFormProps) {
   const toast = useToast();
+  const isRecurring = !!todo.recurringGroupId;
+
   const initialState: UpdateFormState = {
     message: "",
     errors: {},
     success: false,
   };
-  const [serverState, formAction, isPending] = useActionState(
+
+  const [singleState, singleAction, isSinglePending] = useActionState(
     updateTodoAction,
     initialState,
   );
-  const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
-
-  const [deadlineValue, setDeadlineValue] = useState<Date>(() =>
-    initialDeadlineValue(deadlineDateJst, deadlineTimeJst, todo),
+  const [recurringState, recurringAction, isRecurringPending] = useActionState(
+    updateRecurringTodoAction,
+    initialState,
   );
+
+  const serverState = isRecurring ? recurringState : singleState;
+  const isPending = isRecurring ? isRecurringPending : isSinglePending;
+
+  const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
+  const [recurringScope, setRecurringScope] = useState<RecurringEditScope | null>(null);
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
   const mergedErrors = (field: keyof TodoFormInput) =>
     clientErrors[field]?.length
       ? clientErrors[field]
       : (serverState.errors?.[field] as string[] | undefined);
 
+  function handleScopeSelect(scope: RecurringEditScope) {
+    setRecurringScope(scope);
+    setScopeDialogOpen(false);
+    if (pendingFormData) {
+      const fd = pendingFormData;
+      fd.set("recurringScope", scope);
+      startTransition(() => {
+        recurringAction(fd);
+        toast.success("編集しました。");
+      });
+      setPendingFormData(null);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    // 直前の client error はクリア（ここは好み）
     setClientErrors({});
 
     const formData = new FormData(e.currentTarget);
 
-    console.log(formData.get("deadlineDate"));
-    console.log(formData.get("deadlineTime"));
+    if (isRecurring) {
+      const parsed = recurringUpdateFormSchema.safeParse({
+        title: formData.get("title"),
+        content: formData.get("content"),
+        priority: formData.get("priority"),
+        deadlineTime: formData.get("deadlineTime"),
+      });
+
+      if (!parsed.success) {
+        setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
+        return;
+      }
+
+      setPendingFormData(formData);
+      setScopeDialogOpen(true);
+      return;
+    }
 
     const parsed = todoFormSchema.safeParse({
       title: formData.get("title"),
@@ -97,14 +159,12 @@ export default function EditTodoForm({
     });
 
     if (!parsed.success) {
-      console.log("client error");
       setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
       return;
     }
 
-    // OKなら server action 実行
     startTransition(() => {
-      formAction(formData);
+      singleAction(formData);
       toast.success("編集しました。");
     });
   }
@@ -116,118 +176,198 @@ export default function EditTodoForm({
   const deadlineTimeErrors = mergedErrors("deadlineTime");
 
   return (
-    <Card className="px-5 py-2">
-      <form onSubmit={onSubmit}>
-        <input type="hidden" name="id" value={todo.id} />
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-full">
-            <TextField
-              id="title"
-              name="title"
-              margin="normal"
-              label="*タイトル"
+    <>
+      {/* 繰り返しTODO: 編集スコープ選択ダイアログ */}
+      {isRecurring && (
+        <Dialog open={scopeDialogOpen} disableEscapeKeyDown>
+          <DialogTitle>どのTODOを編集しますか？</DialogTitle>
+          <DialogContent>
+            <DialogContentText>編集する範囲を選択してください。</DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ flexDirection: "column", gap: 1, p: 2 }}>
+            <Button
+              fullWidth
               variant="outlined"
-              fullWidth
-              slotProps={{ htmlInput: { maxLength: 50 } }}
-              defaultValue={todo.title}
-              error={!!titleErrors?.length}
-            />
-            <FormHelperText>最大50文字</FormHelperText>
-            {titleErrors?.length && (
-              <FormHelperText error>{titleErrors[0]}</FormHelperText>
-            )}
-          </div>
-
-          <div className="col-span-full">
-            <TextField
-              id="content"
-              name="content"
-              multiline
-              margin="normal"
-              rows={9}
-              label="内容"
-              variant="outlined"
-              fullWidth
-              slotProps={{ htmlInput: { maxLength: 500 } }}
-              defaultValue={todo.content}
-              error={!!contentErrors?.length}
-            />
-            <FormHelperText>最大500文字</FormHelperText>
-            {contentErrors?.length && (
-              <FormHelperText error>{contentErrors[0]}</FormHelperText>
-            )}
-          </div>
-
-          <div className="col-span-full sm:col-span-1">
-            <TextField
-              id="outlined-select-currency"
-              name="priority"
-              select
-              label="*優先度"
-              fullWidth
-              defaultValue={todo.priority}
-              error={!!priorityErrors?.length}
+              onClick={() => handleScopeSelect("ONLY_THIS")}
             >
-              <MenuItem value="" disabled>
-                選択してください
-              </MenuItem>
-              {PRIORITY_DDL_ITEMS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
+              該当のTODOのみ編集
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => handleScopeSelect("THIS_AND_FUTURE")}
+            >
+              そのTODO以降のTODOを編集
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => handleScopeSelect("ALL")}
+            >
+              すべての繰り返しTODOを編集
+            </Button>
+            <Button fullWidth variant="text" onClick={() => setScopeDialogOpen(false)}>
+              キャンセル
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      <Card className="px-5 py-2">
+        <form onSubmit={onSubmit}>
+          <input type="hidden" name="id" value={todo.id} />
+          {isRecurring && todo.recurringGroupId && (
+            <>
+              <input
+                type="hidden"
+                name="recurringGroupId"
+                value={todo.recurringGroupId}
+              />
+              <input
+                type="hidden"
+                name="recurringScope"
+                value={recurringScope ?? ""}
+              />
+            </>
+          )}
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-full">
+              <TextField
+                id="title"
+                name="title"
+                margin="normal"
+                label="*タイトル"
+                variant="outlined"
+                fullWidth
+                slotProps={{ htmlInput: { maxLength: 50 } }}
+                defaultValue={todo.title}
+                error={!!titleErrors?.length}
+              />
+              <FormHelperText>最大50文字</FormHelperText>
+              {titleErrors?.length && (
+                <FormHelperText error>{titleErrors[0]}</FormHelperText>
+              )}
+            </div>
+
+            <div className="col-span-full">
+              <TextField
+                id="content"
+                name="content"
+                multiline
+                margin="normal"
+                rows={9}
+                label="内容"
+                variant="outlined"
+                fullWidth
+                slotProps={{ htmlInput: { maxLength: 500 } }}
+                defaultValue={todo.content}
+                error={!!contentErrors?.length}
+              />
+              <FormHelperText>最大500文字</FormHelperText>
+              {contentErrors?.length && (
+                <FormHelperText error>{contentErrors[0]}</FormHelperText>
+              )}
+            </div>
+
+            <div className="col-span-full sm:col-span-1">
+              <TextField
+                id="outlined-select-priority"
+                name="priority"
+                select
+                label="*優先度"
+                fullWidth
+                defaultValue={todo.priority}
+                error={!!priorityErrors?.length}
+              >
+                <MenuItem value="" disabled>
+                  選択してください
                 </MenuItem>
-              ))}
-            </TextField>
-            {priorityErrors?.length && (
-              <FormHelperText error>{priorityErrors[0]}</FormHelperText>
+                {PRIORITY_DDL_ITEMS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+              {priorityErrors?.length && (
+                <FormHelperText error>{priorityErrors[0]}</FormHelperText>
+              )}
+            </div>
+
+            {/* 曜日・終了日の表示（繰り返しTODOのみ） */}
+            {isRecurring && todo.recurringGroupDays && (
+              <div className="col-span-full">
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" gap={1}>
+                  <Typography variant="body2" color="text.secondary">
+                    繰り返し曜日:
+                  </Typography>
+                  {todo.recurringGroupDays
+                    .split(",")
+                    .map(Number)
+                    .sort((a, b) => a - b)
+                    .map((d) => (
+                      <Chip
+                        key={d}
+                        label={(WEEKDAY_ITEMS.find((w) => w.value === d)?.label ?? "") + "曜日"}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                      />
+                    ))}
+                </Stack>
+              </div>
             )}
+
+            {/* 繰り返しTODOの場合は期限日を編集不可（各インスタンスの日付は変えない） */}
+            {!isRecurring && (
+              <div className="col-span-full sm:col-span-1">
+                <DatePicker
+                  name="deadlineDate"
+                  label="*期限日"
+                  sx={{ width: "100%" }}
+                  defaultValue={new Date(todo.deadline)}
+                  slotProps={{
+                    textField: { error: !!deadlineDateErrors?.length },
+                  }}
+                  disablePast
+                />
+                {deadlineDateErrors?.length && (
+                  <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+                )}
+              </div>
+            )}
+
+            <div className="col-span-full sm:col-span-1">
+              <TimePicker
+                name="deadlineTime"
+                label="時刻"
+                sx={{ width: "100%" }}
+                defaultValue={todo.isAllDay ? null : new Date(todo.deadline)}
+                slotProps={{
+                  textField: { error: !!deadlineTimeErrors?.length },
+                }}
+              />
+              {deadlineTimeErrors?.length && (
+                <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+              )}
+            </div>
           </div>
 
-          <div className="col-span-full sm:col-span-1">
-            <DatePicker
-              name="deadlineDate"
-              label="*期限日"
-              sx={{ width: "100%" }}
-              defaultValue={new Date(todo.deadline)}
-              slotProps={{
-                textField: { error: !!deadlineDateErrors?.length },
-              }}
-              disablePast
-            />
-            {deadlineDateErrors?.length && (
-              <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
-            )}
-          </div>
-
-          <div className="col-span-full sm:col-span-1">
-            <TimePicker
-              name="deadlineTime"
-              label="時刻"
-              sx={{ width: "100%" }}
-              defaultValue={new Date(todo.deadline)}
-              slotProps={{
-                textField: { error: !!deadlineTimeErrors?.length },
-              }}
-            />
-            {deadlineTimeErrors?.length && (
-              <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
-            )}
-          </div>
-        </div>
-
-        <CardActions sx={{ justifyContent: "flex-end" }} className="mt-5">
-          <Link href="/todos">
-            <Button variant="outlined">キャンセル</Button>
-          </Link>
-          <Button
-            type="submit"
-            color="primary"
-            variant="contained"
-            disabled={isPending}
-          >
-            編集
-          </Button>
-        </CardActions>
-      </form>
-    </Card>
+          <CardActions sx={{ justifyContent: "flex-end" }} className="mt-5">
+            <Link href="/todos">
+              <Button variant="outlined">キャンセル</Button>
+            </Link>
+            <Button
+              type="submit"
+              color="primary"
+              variant="contained"
+              disabled={isPending}
+            >
+              編集
+            </Button>
+          </CardActions>
+        </form>
+      </Card>
+    </>
   );
 }

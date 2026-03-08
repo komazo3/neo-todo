@@ -5,21 +5,33 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   deleteTodo,
+  deleteRecurringTodos,
+  getTodo,
   insertTodo,
+  insertRecurringTodos,
   updateTodo,
   updateTodoStatus,
+  updateRecurringTodos,
   updateUser,
 } from "./database";
 import { parseJstStringsToUtc } from "./jst";
 import "server-only";
 import { auth, signOut } from "@/auth";
+import { Priority } from "@/generated/prisma/enums";
 import {
+  CreateRecurringTodo,
   CreateTodo,
+  UpdateRecurringTodo,
   UpdateTodo,
   UpdateTodoStatus,
   UpdateUser,
 } from "./schemas";
-import { CreateFormState, UpdateFormState, UpdateUserFormState } from "./types";
+import {
+  CreateFormState,
+  RecurringEditScope,
+  UpdateFormState,
+  UpdateUserFormState,
+} from "./types";
 
 export async function createTodoAction(
   prevState: CreateFormState,
@@ -204,4 +216,139 @@ export async function updateUserAction(
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+export async function createRecurringTodoAction(
+  prevState: CreateFormState,
+  formData: FormData,
+): Promise<CreateFormState> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。" };
+  }
+
+  const validated = CreateRecurringTodo.safeParse({
+    title: formData.get("title"),
+    content: formData.get("content"),
+    priority: formData.get("priority"),
+    recurringDays: formData.get("recurringDays"),
+    deadlineTime: formData.get("deadlineTime"),
+  });
+
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors as Record<string, string[]>,
+      message: "入力内容を確認してください。",
+    };
+  }
+
+  try {
+    await insertRecurringTodos(session.user.id, {
+      title: validated.data.title,
+      content: validated.data.content,
+      priority: validated.data.priority as Priority,
+      days: validated.data.days,
+      timeStr: validated.data.timeStr,
+    });
+  } catch (e: unknown) {
+    return {
+      errors: {},
+      message:
+        e instanceof Error ? e.message : "繰り返しTODOの追加に失敗しました。",
+    };
+  }
+
+  revalidatePath("/todos");
+  redirect("/todos");
+}
+
+export async function updateRecurringTodoAction(
+  formState: UpdateFormState,
+  formData: FormData,
+): Promise<UpdateFormState> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { errors: {}, message: "ログインが必要です。", success: false };
+  }
+
+  const validated = UpdateRecurringTodo.safeParse({
+    id: formData.get("id"),
+    recurringGroupId: formData.get("recurringGroupId"),
+    recurringScope: formData.get("recurringScope"),
+    title: formData.get("title"),
+    content: formData.get("content"),
+    priority: formData.get("priority"),
+    deadlineTime: formData.get("deadlineTime"),
+  });
+
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors as Record<string, string[]>,
+      message: "入力内容を確認してください。",
+      success: false,
+    };
+  }
+
+  // この Todo の現在の deadline を取得（THIS_AND_FUTURE スコープのため）
+  const currentTodo = await getTodo(validated.data.id, session.user.id);
+  if (!currentTodo) {
+    return { errors: {}, message: "TODOが見つかりません。", success: false };
+  }
+
+  const timeStr =
+    validated.data.deadlineTime && validated.data.deadlineTime !== ""
+      ? validated.data.deadlineTime
+      : null;
+
+  try {
+    await updateRecurringTodos(
+      validated.data.id,
+      currentTodo.deadline,
+      validated.data.recurringGroupId,
+      session.user.id,
+      validated.data.recurringScope as RecurringEditScope,
+      {
+        title: validated.data.title,
+        content: validated.data.content,
+        priority: validated.data.priority as Priority,
+        timeStr,
+      },
+    );
+  } catch {
+    return {
+      errors: {},
+      message: "Database Error: Failed to Update Recurring Todo.",
+      success: false,
+    };
+  }
+
+  revalidatePath("/todos");
+  redirect("/todos");
+}
+
+export async function deleteRecurringTodoAction(
+  id: string,
+  recurringGroupId: string,
+  scope: RecurringEditScope,
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("ログインが必要です。");
+  }
+
+  const currentTodo = await getTodo(id, session.user.id);
+  if (!currentTodo) throw new Error("TODOが見つかりません。");
+
+  try {
+    await deleteRecurringTodos(
+      id,
+      currentTodo.deadline,
+      recurringGroupId,
+      session.user.id,
+      scope,
+    );
+  } catch {
+    throw new Error("Database Error: Failed to delete recurring todo.");
+  }
+  revalidatePath("/todos");
 }

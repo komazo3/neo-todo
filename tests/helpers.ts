@@ -205,6 +205,82 @@ export async function deleteTestTodoByTitle(title: string): Promise<void> {
   await prisma.todo.deleteMany({ where: { userId: user.id, title } });
 }
 
+// ── 繰り返し TODO ヘルパー ──────────────────────────────────
+
+/** 今日の JST 曜日番号 (0=日〜6=土) を返す */
+export function getTodayJstDow(): number {
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const jstNow = new Date(Date.now() + JST_OFFSET_MS);
+  return new Date(
+    Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()),
+  ).getUTCDay();
+}
+
+/** 曜日番号 → チェックボックスラベル（"日"〜"土"） */
+export function dowToLabel(dow: number): string {
+  return ["日", "月", "火", "水", "木", "金", "土"][dow];
+}
+
+/**
+ * DB操作: テスト用繰り返しTODOを作成する（今日の曜日を含む）
+ * RecurringGroup + 当日 Todo インスタンスをまとめて登録する
+ */
+export async function createTestRecurringTodo(overrides?: {
+  title?: string;
+  content?: string;
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+}): Promise<{ groupId: string; todoId: string; title: string }> {
+  const user = await prisma.user.findUnique({ where: { email: TEST_USER.email } });
+  if (!user) throw new Error("Test user not found");
+
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const jstNow = new Date(Date.now() + JST_OFFSET_MS);
+  const y = jstNow.getUTCFullYear();
+  const m = jstNow.getUTCMonth() + 1;
+  const d = jstNow.getUTCDate();
+  const todayDow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+
+  // 終日 TODO: JST 23:59:59 = UTC(y, m-1, d, 14, 59, 59)
+  const deadline = new Date(Date.UTC(y, m - 1, d, 14, 59, 59));
+
+  const title = overrides?.title ?? `繰り返しテストTODO ${Date.now()}`;
+  const content = overrides?.content ?? "繰り返しテスト用コンテンツ";
+  const priority = overrides?.priority ?? "MEDIUM";
+
+  const result = await prisma.$transaction(async (tx) => {
+    const group = await tx.recurringGroup.create({
+      data: { days: String(todayDow), title, content, priority, timeStr: null, userId: user.id },
+    });
+    const todo = await tx.todo.create({
+      data: { title, content, priority, deadline, isAllDay: true, userId: user.id, recurringGroupId: group.id },
+    });
+    return { groupId: group.id, todoId: todo.id, title };
+  });
+
+  return result;
+}
+
+/**
+ * DB操作: 繰り返しグループとその全 Todo を削除する
+ */
+export async function deleteTestRecurringGroup(groupId: string): Promise<void> {
+  await prisma.todo.deleteMany({ where: { recurringGroupId: groupId } });
+  await prisma.recurringGroup.deleteMany({ where: { id: groupId } });
+}
+
+/**
+ * DB操作: タイトルで繰り返しグループを削除する（UIテストで作成した繰り返しTODOのクリーンアップ用）
+ */
+export async function deleteTestRecurringGroupByTitle(title: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { email: TEST_USER.email } });
+  if (!user) return;
+  const groups = await prisma.recurringGroup.findMany({ where: { userId: user.id, title } });
+  for (const g of groups) {
+    await prisma.todo.deleteMany({ where: { recurringGroupId: g.id } });
+    await prisma.recurringGroup.deleteMany({ where: { id: g.id } });
+  }
+}
+
 /**
  * UI操作: TODO編集ページへ遷移する
  * @param page - Playwrightのページオブジェクト

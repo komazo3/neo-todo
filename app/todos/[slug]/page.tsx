@@ -43,6 +43,8 @@ export default async function EditTodoPage({ params }: EditTodoPageProps) {
     priority: targetTodo.priority,
     deadline: targetTodo.deadline,
     isAllDay: targetTodo.isAllDay,
+    recurringGroupId: targetTodo.recurringGroupId,
+    recurringGroupDays: targetTodo.recurringGroup?.days ?? null,
   };
 
   return (

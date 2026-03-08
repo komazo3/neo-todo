@@ -1,9 +1,13 @@
 "use client";
 
 import { useToast } from "@/app/components/toastProvider";
-import { createTodoAction } from "@/app/lib/actions";
-import { PRIORITY_DDL_ITEMS } from "@/app/lib/constants";
 import {
+  createRecurringTodoAction,
+  createTodoAction,
+} from "@/app/lib/actions";
+import { PRIORITY_DDL_ITEMS, WEEKDAY_ITEMS } from "@/app/lib/constants";
+import {
+  recurringFormSchema,
   todoFormSchema,
   type TodoFormErrors,
   type TodoFormInput,
@@ -13,55 +17,104 @@ import {
   Button,
   Card,
   CardActions,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
   FormHelperText,
   MenuItem,
+  Switch,
   TextField,
+  Typography,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import Link from "next/link";
-import { parse } from "path";
 import { startTransition, useActionState, useState } from "react";
 
 export default function NewTodoForm() {
   const toast = useToast();
   const initialState: CreateFormState = { message: "", errors: {} };
-  const [serverState, formAction, isPending] = useActionState(
+
+  const [singleState, singleAction, isSinglePending] = useActionState(
     createTodoAction,
     initialState,
   );
+  const [recurringState, recurringAction, isRecurringPending] = useActionState(
+    createRecurringTodoAction,
+    initialState,
+  );
+
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [clientErrors, setClientErrors] = useState<TodoFormErrors>({});
+  const [recurringDaysError, setRecurringDaysError] = useState<string>("");
+
+  const serverState = isRecurring ? recurringState : singleState;
+  const isPending = isRecurring ? isRecurringPending : isSinglePending;
 
   const mergedErrors = (field: keyof TodoFormInput) =>
     clientErrors[field]?.length
       ? clientErrors[field]
       : (serverState.errors?.[field] as string[] | undefined);
 
+  function toggleDay(day: number) {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
+    setRecurringDaysError("");
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    // 直前の client error はクリア（ここは好み）
     setClientErrors({});
+    setRecurringDaysError("");
 
     const formData = new FormData(e.currentTarget);
 
-    const parsed = todoFormSchema.safeParse({
-      title: formData.get("title"),
-      content: formData.get("content"),
-      priority: formData.get("priority"),
-      deadlineDate: formData.get("deadlineDate"),
-      deadlineTime: formData.get("deadlineTime"),
-    });
+    if (isRecurring) {
+      const parsed = recurringFormSchema.safeParse({
+        title: formData.get("title"),
+        content: formData.get("content"),
+        priority: formData.get("priority"),
+        recurringDays: selectedDays.length > 0 ? selectedDays.join(",") : "",
+        recurringEndDate: formData.get("recurringEndDate"),
+        deadlineTime: formData.get("deadlineTime"),
+      });
 
-    if (!parsed.success) {
-      setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
-      return;
+      if (!parsed.success) {
+        const errors = parsed.error.flatten().fieldErrors;
+        setClientErrors({
+          title: errors.title,
+          content: errors.content,
+          priority: errors.priority,
+          deadlineTime: errors.deadlineTime,
+        } as TodoFormErrors);
+        setRecurringDaysError(errors.recurringDays?.[0] ?? "");
+        return;
+      }
+      formData.set("recurringDays", selectedDays.join(","));
+      startTransition(() => {
+        recurringAction(formData);
+        toast.success("繰り返しTODOを追加しました。");
+      });
+    } else {
+      const parsed = todoFormSchema.safeParse({
+        title: formData.get("title"),
+        content: formData.get("content"),
+        priority: formData.get("priority"),
+        deadlineDate: formData.get("deadlineDate"),
+        deadlineTime: formData.get("deadlineTime"),
+      });
+
+      if (!parsed.success) {
+        setClientErrors(parsed.error.flatten().fieldErrors as TodoFormErrors);
+        return;
+      }
+
+      startTransition(() => {
+        singleAction(formData);
+        toast.success("追加しました。");
+      });
     }
-
-    // OKなら server action 実行
-    startTransition(() => {
-      formAction(formData);
-      toast.success("追加しました。");
-    });
   }
 
   const titleErrors = mergedErrors("title");
@@ -86,7 +139,6 @@ export default function NewTodoForm() {
               error={!!titleErrors?.length}
             />
             <FormHelperText>最大50文字</FormHelperText>
-
             {titleErrors?.length && (
               <FormHelperText error>{titleErrors[0]}</FormHelperText>
             )}
@@ -106,7 +158,6 @@ export default function NewTodoForm() {
               error={!!contentErrors?.length}
             />
             <FormHelperText>最大500文字</FormHelperText>
-
             {contentErrors?.length && (
               <FormHelperText error>{contentErrors[0]}</FormHelperText>
             )}
@@ -114,7 +165,7 @@ export default function NewTodoForm() {
 
           <div className="col-span-full sm:col-span-1">
             <TextField
-              id="outlined-select-currency"
+              id="outlined-select-priority"
               name="priority"
               select
               label="*優先度"
@@ -136,35 +187,90 @@ export default function NewTodoForm() {
             )}
           </div>
 
-          <div className="col-span-full sm:col-span-1">
-            <DatePicker
-              name="deadlineDate"
-              label="*期限日"
-              sx={{ width: "100%" }}
-              slotProps={{
-                textField: {
-                  error: !!deadlineDateErrors?.length,
-                },
-              }}
-              disablePast
+          {/* 繰り返しトグル */}
+          <div className="col-span-full">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                />
+              }
+              label="繰り返し"
             />
-            {deadlineDateErrors?.length && (
-              <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
-            )}
           </div>
-          <div className="col-span-full sm:col-span-1">
-            <TimePicker
-              name="deadlineTime"
-              sx={{ width: "100%" }}
-              label="時刻"
-              slotProps={{
-                textField: { error: !!deadlineTimeErrors?.length },
-              }}
-            />
-            {deadlineTimeErrors?.length && (
-              <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
-            )}
-          </div>
+
+          {isRecurring ? (
+            <>
+              <div className="col-span-full">
+                <Typography variant="body2" color="text.secondary" mb={0.5}>
+                  *繰り返す曜日
+                </Typography>
+                <FormGroup row>
+                  {WEEKDAY_ITEMS.map((item) => (
+                    <FormControlLabel
+                      key={item.value}
+                      control={
+                        <Checkbox
+                          checked={selectedDays.includes(item.value)}
+                          onChange={() => toggleDay(item.value)}
+                        />
+                      }
+                      label={item.label}
+                    />
+                  ))}
+                </FormGroup>
+                {recurringDaysError && (
+                  <FormHelperText error>{recurringDaysError}</FormHelperText>
+                )}
+              </div>
+              <div className="col-span-full sm:col-span-1">
+                <TimePicker
+                  name="deadlineTime"
+                  sx={{ width: "100%" }}
+                  label="時刻"
+                  slotProps={{
+                    textField: { error: !!deadlineTimeErrors?.length },
+                  }}
+                />
+                {deadlineTimeErrors?.length && (
+                  <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="col-span-full sm:col-span-1">
+                <DatePicker
+                  name="deadlineDate"
+                  label="*期限日"
+                  sx={{ width: "100%" }}
+                  slotProps={{
+                    textField: {
+                      error: !!deadlineDateErrors?.length,
+                    },
+                  }}
+                  disablePast
+                />
+                {deadlineDateErrors?.length && (
+                  <FormHelperText error>{deadlineDateErrors[0]}</FormHelperText>
+                )}
+              </div>
+              <div className="col-span-full sm:col-span-1">
+                <TimePicker
+                  name="deadlineTime"
+                  sx={{ width: "100%" }}
+                  label="時刻"
+                  slotProps={{
+                    textField: { error: !!deadlineTimeErrors?.length },
+                  }}
+                />
+                {deadlineTimeErrors?.length && (
+                  <FormHelperText error>{deadlineTimeErrors[0]}</FormHelperText>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <CardActions sx={{ justifyContent: "flex-end" }} className="mt-5">

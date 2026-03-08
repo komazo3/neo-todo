@@ -2,7 +2,7 @@ import SubHeader from "@/app/components/subHeader";
 import DateSelector from "./dateSelector";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { listTodos } from "@/app/lib/database";
+import { ensureTodayRecurringTodos, listTodos } from "@/app/lib/database";
 import { getTodayJst } from "@/app/lib/jst";
 import type { TodoDTO } from "@/app/lib/types";
 import TodosClient from "./todosClient";
@@ -41,6 +41,9 @@ export default async function TodosPage({ searchParams }: TodosPageProps) {
     targetDate = new Date(Date.UTC(today.year, today.month - 1, today.day));
   }
 
+  // 当日の繰り返しTODOが未生成であれば生成する
+  await ensureTodayRecurringTodos(session.user.id, targetDate);
+
   // date だけを使用してTODOを取得
   const todos = await listTodos(
     session.user.id,
@@ -57,6 +60,7 @@ export default async function TodosPage({ searchParams }: TodosPageProps) {
     priority: t.priority,
     deadline: t.deadline,
     isAllDay: t.isAllDay,
+    recurringGroupId: t.recurringGroupId,
   }));
 
   return (
