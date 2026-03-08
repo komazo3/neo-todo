@@ -57,6 +57,7 @@ export default async function TodosPage({ searchParams }: TodosPageProps) {
     priority: t.priority,
     deadline: t.deadline,
     isAllDay: t.isAllDay,
+    recurringGroupId: t.recurringGroupId,
   }));
 
   return (

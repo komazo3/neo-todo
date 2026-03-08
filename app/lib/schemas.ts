@@ -122,6 +122,100 @@ export const UpdateTodo = z
 export type TodoFormInput = z.infer<typeof todoFormSchema>;
 export type TodoFormErrors = Partial<Record<keyof TodoFormInput, string[]>>;
 
+/** 繰り返しTODO作成フォーム用のクライアント側バリデーションスキーマ */
+export const recurringFormSchema = z.object({
+  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+  content: z.string().max(500, "最大500文字です"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+    message: "優先度を選択してください",
+  }),
+  recurringDays: z.string().min(1, "少なくとも1つの曜日を選択してください"),
+  recurringEndDate: z.preprocess(
+    (v) => (typeof v === "string" && v !== "" ? new Date(v) : undefined),
+    z
+      .date({
+        error: () => "繰り返し終了日を入力してください",
+      })
+      .refine((d) => !Number.isNaN(d.getTime()), "繰り返し終了日を正しく入力してください")
+      .refine((d) => d >= startOfDay(new Date()), "現在以降の日を入力してください"),
+  ),
+  deadlineTime: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "時刻の形式が正しくありません")
+      .optional(),
+  ),
+});
+
+/** 繰り返しTODO編集フォーム用のクライアント側バリデーションスキーマ */
+export const recurringUpdateFormSchema = z.object({
+  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+  content: z.string().max(500, "最大500文字です"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+    message: "優先度を選択してください",
+  }),
+  deadlineTime: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "時刻の形式が正しくありません")
+      .optional(),
+  ),
+});
+
+export type RecurringFormInput = z.infer<typeof recurringFormSchema>;
+export type RecurringFormErrors = Partial<Record<keyof RecurringFormInput, string[]>>;
+
+// 繰り返しTODO作成用スキーマ
+export const CreateRecurringTodo = z
+  .object({
+    title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+    content: z.string().max(500, "最大500文字です"),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+      message: "優先度を選択してください",
+    }),
+    // "0,1,2" 形式のカンマ区切り曜日番号
+    recurringDays: z
+      .string()
+      .min(1, "少なくとも1つの曜日を選択してください"),
+    // MUI DatePicker から "YYYY/MM/DD" 形式
+    recurringEndDate: z
+      .string()
+      .regex(/^\d{4}\/\d{2}\/\d{2}$/, "繰り返し終了日を正しく入力してください"),
+    deadlineTime: z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "時刻の形式が正しくありません")
+      .optional()
+      .or(z.literal("")),
+  })
+  .transform((data) => {
+    const days = data.recurringDays
+      .split(",")
+      .map((d) => parseInt(d, 10))
+      .filter((d) => d >= 0 && d <= 6);
+    const timeStr =
+      data.deadlineTime && data.deadlineTime !== ""
+        ? data.deadlineTime
+        : undefined;
+    // 終了日の JST 日末（23:59:59）を UTC Date に変換
+    const [ey, em, ed] = data.recurringEndDate.split("/").map(Number);
+    const endDate = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59) - 9 * 60 * 60 * 1000);
+    return { ...data, days, timeStr, endDate };
+  });
+
+// 繰り返しTODO編集用スキーマ（deadline は各インスタンスが保持するため更新不要）
+export const UpdateRecurringTodo = z.object({
+  id: z.string(),
+  recurringGroupId: z.string(),
+  recurringScope: z.enum(["ONLY_THIS", "THIS_AND_FUTURE", "ALL"]),
+  title: z.string().min(1, "タイトルは必須です").max(50, "最大50文字です"),
+  content: z.string().max(500, "最大500文字です"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"], {
+    message: "優先度を選択してください",
+  }),
+});
+
 /** マイページ・ユーザー名編集フォーム用 */
 export const userFormSchema = z.object({
   name: z.string().min(1, "名前は必須です").max(50, "最大50文字です"),

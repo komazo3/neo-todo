@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { formatTimeJst } from "@/app/lib/jst";
 import { useOptimistic, useState, useTransition } from "react";
-import { deleteTodoAction, updateTodoStatusAction } from "@/app/lib/actions";
-import type { TodoDTO } from "@/app/lib/types";
+import {
+  deleteTodoAction,
+  deleteRecurringTodoAction,
+  updateTodoStatusAction,
+} from "@/app/lib/actions";
+import type { RecurringEditScope, TodoDTO } from "@/app/lib/types";
 import PriorityChip from "./priorityChip";
 import {
   Button,
@@ -13,6 +17,7 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
+  DialogTitle,
 } from "@mui/material";
 import { Status } from "@/generated/prisma/enums";
 import { useToast } from "@/app/components/toastProvider";
@@ -28,23 +33,22 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
   );
 
   const toast = useToast();
-
   const [isPending, startTransition] = useTransition();
 
   const handleCloseDialog = () => setOpenedTodoId(null);
+
+  const openedTodo = optimisticTodos.find((t) => t.id === openedTodoId) ?? null;
 
   function toggleTodoDone(todoId: string, checked: boolean) {
     const nextStatus = checked ? Status.DONE : Status.UNTOUCHED;
 
     startTransition(async () => {
-      // ✅ optimistic 更新は transition 内へ
       setOptimisticTodos({ id: todoId, status: nextStatus });
 
       try {
         await updateTodoStatusAction(todoId, checked);
         toast.success("更新しました。");
       } catch {
-        // ✅ 失敗時のロールバックも transition 内
         setOptimisticTodos({
           id: todoId,
           status: checked ? Status.UNTOUCHED : Status.DONE,
@@ -58,6 +62,22 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
     startTransition(async () => {
       try {
         await deleteTodoAction(todoId);
+        setOpenedTodoId(null);
+        toast.success("削除しました。");
+      } catch {
+        toast.error("削除が失敗しました。");
+      }
+    });
+  }
+
+  function handleDeleteRecurringTodo(
+    todoId: string,
+    recurringGroupId: string,
+    scope: RecurringEditScope,
+  ) {
+    startTransition(async () => {
+      try {
+        await deleteRecurringTodoAction(todoId, recurringGroupId, scope);
         setOpenedTodoId(null);
         toast.success("削除しました。");
       } catch {
@@ -82,6 +102,11 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
                 <div className="flex flex-col items-center gap-4 mb-4">
                   <span className="text-sm font-semibold text-left truncate w-full border-b border-b-gray-300 pb-2">
                     {todo.title}
+                    {todo.recurringGroupId && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        繰り返し
+                      </span>
+                    )}
                   </span>
                   <div className="flex gap-2 text-left w-full flex-row items-start">
                     <PriorityChip priority={todo.priority} />
@@ -112,28 +137,99 @@ export default function TodoList({ todos }: { todos: TodoDTO[] }) {
               </div>
             </div>
 
+            {/* 削除確認ダイアログ */}
             <Dialog open={openedTodoId === todo.id} onClose={handleCloseDialog}>
-              <DialogContent>
-                <DialogContentText>
-                  {`${todo.title}を削除しますか？`}
-                </DialogContentText>
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  onClick={() => handleDeleteTodo(todo.id)}
-                  disabled={isPending}
-                  variant="contained"
-                >
-                  OK
-                </Button>
-                <Button
-                  onClick={handleCloseDialog}
-                  autoFocus
-                  variant="outlined"
-                >
-                  キャンセル
-                </Button>
-              </DialogActions>
+              {todo.recurringGroupId ? (
+                /* 繰り返しTODO: スコープ選択 */
+                <>
+                  <DialogTitle>どのTODOを削除しますか？</DialogTitle>
+                  <DialogContent>
+                    <DialogContentText>
+                      {`「${todo.title}」は繰り返しTODOです。削除する範囲を選択してください。`}
+                    </DialogContentText>
+                  </DialogContent>
+                  <DialogActions sx={{ flexDirection: "column", gap: 1, p: 2 }}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      disabled={isPending}
+                      onClick={() =>
+                        handleDeleteRecurringTodo(
+                          todo.id,
+                          todo.recurringGroupId!,
+                          "ONLY_THIS",
+                        )
+                      }
+                    >
+                      該当のTODOのみ削除
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      disabled={isPending}
+                      onClick={() =>
+                        handleDeleteRecurringTodo(
+                          todo.id,
+                          todo.recurringGroupId!,
+                          "THIS_AND_FUTURE",
+                        )
+                      }
+                    >
+                      そのTODO以降のTODOを削除
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      disabled={isPending}
+                      onClick={() =>
+                        handleDeleteRecurringTodo(
+                          todo.id,
+                          todo.recurringGroupId!,
+                          "ALL",
+                        )
+                      }
+                    >
+                      すべての繰り返しTODOを削除
+                    </Button>
+                    <Button
+                      fullWidth
+                      onClick={handleCloseDialog}
+                      autoFocus
+                      variant="text"
+                    >
+                      キャンセル
+                    </Button>
+                  </DialogActions>
+                </>
+              ) : (
+                /* 通常TODO: 既存の確認ダイアログ */
+                <>
+                  <DialogContent>
+                    <DialogContentText>
+                      {`${todo.title}を削除しますか？`}
+                    </DialogContentText>
+                  </DialogContent>
+                  <DialogActions>
+                    <Button
+                      onClick={() => handleDeleteTodo(todo.id)}
+                      disabled={isPending}
+                      variant="contained"
+                    >
+                      OK
+                    </Button>
+                    <Button
+                      onClick={handleCloseDialog}
+                      autoFocus
+                      variant="outlined"
+                    >
+                      キャンセル
+                    </Button>
+                  </DialogActions>
+                </>
+              )}
             </Dialog>
           </li>
         ))}
