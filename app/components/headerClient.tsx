@@ -12,18 +12,25 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import Divider from "@mui/material/Divider";
 import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CheckBoxOutlined from "@mui/icons-material/CheckBoxOutlined";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Add from "@mui/icons-material/Add";
 
 export default function HeaderClient({ user }: { user: UserLite | null }) {
   const isLoggedIn = !!user;
 
   const pathname = usePathname();
+  const router = useRouter();
 
-  // アクティブ判定ヘルパー
-  const isActive = (href: string) => pathname === href;
+  // セッションタイムアウト後、/login にリダイレクトされてもルーターキャッシュにより
+  // ヘッダーが再レンダリングされないことがある。ログインページでユーザー情報が残っている
+  // 場合はサーバーコンポーネントを再フェッチして最新のセッション状態を反映させる。
+  useEffect(() => {
+    if (pathname === "/login" && isLoggedIn) {
+      router.refresh();
+    }
+  }, [pathname, isLoggedIn, router]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
