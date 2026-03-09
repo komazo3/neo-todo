@@ -1,5 +1,5 @@
 import { Prisma, Priority, Status, Todo } from "@/generated/prisma/client";
-import { jstToUtc, parseJstStringsToUtc } from "./jst";
+import { jstToUtc, parseJstStringsToUtc, utcToJstDateForPicker } from "./jst";
 import { prisma } from "./prisma";
 import {
   TodoCreateInput,
@@ -252,43 +252,82 @@ export async function updateRecurringTodos(
 ) {
   const { timeStr, ...todoData } = data;
 
+  /** UTC の deadline の日付部分はそのままに、時刻だけ timeStr で上書きした新しい deadline を返す */
+  function buildNewDeadline(
+    existingUtcDeadline: Date,
+  ): { deadline: Date; isAllDay: boolean } {
+    const { dateString } = utcToJstDateForPicker(existingUtcDeadline);
+    const newDeadline = parseJstStringsToUtc(
+      dateString,
+      timeStr || undefined,
+    );
+    return { deadline: newDeadline, isAllDay: !timeStr };
+  }
+
+  const groupData = {
+    title: data.title,
+    content: data.content,
+    priority: data.priority,
+    ...(timeStr !== undefined ? { timeStr } : {}),
+  };
+
   if (scope === "ONLY_THIS") {
+    const deadlineFields =
+      timeStr !== undefined ? buildNewDeadline(deadline) : {};
     const { count } = await prisma.todo.updateMany({
       where: { id: todoId, userId },
-      data: todoData,
+      data: { ...todoData, ...deadlineFields },
     });
     if (count === 0) throw new Error("Todo not found or access denied");
   } else if (scope === "THIS_AND_FUTURE") {
+    const affectedTodos =
+      timeStr !== undefined
+        ? await prisma.todo.findMany({
+            where: { recurringGroupId, userId, deadline: { gte: deadline } },
+            select: { id: true, deadline: true },
+          })
+        : [];
+
     await prisma.$transaction([
       prisma.todo.updateMany({
         where: { recurringGroupId, userId, deadline: { gte: deadline } },
         data: todoData,
       }),
+      ...affectedTodos.map((t) =>
+        prisma.todo.update({
+          where: { id: t.id },
+          data: buildNewDeadline(t.deadline),
+        }),
+      ),
       // 将来生成分のため、グループテンプレートも更新
       prisma.recurringGroup.updateMany({
         where: { id: recurringGroupId, userId },
-        data: {
-          title: data.title,
-          content: data.content,
-          priority: data.priority,
-          ...(timeStr !== undefined ? { timeStr } : {}),
-        },
+        data: groupData,
       }),
     ]);
   } else {
+    const affectedTodos =
+      timeStr !== undefined
+        ? await prisma.todo.findMany({
+            where: { recurringGroupId, userId },
+            select: { id: true, deadline: true },
+          })
+        : [];
+
     await prisma.$transaction([
       prisma.todo.updateMany({
         where: { recurringGroupId, userId },
         data: todoData,
       }),
+      ...affectedTodos.map((t) =>
+        prisma.todo.update({
+          where: { id: t.id },
+          data: buildNewDeadline(t.deadline),
+        }),
+      ),
       prisma.recurringGroup.updateMany({
         where: { id: recurringGroupId, userId },
-        data: {
-          title: data.title,
-          content: data.content,
-          priority: data.priority,
-          ...(timeStr !== undefined ? { timeStr } : {}),
-        },
+        data: groupData,
       }),
     ]);
   }
